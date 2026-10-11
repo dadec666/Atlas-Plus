@@ -1,0 +1,21 @@
+## Interface: 30300
+## Title: Atlas Plus
+## Notes: World map and instance maps in one window: bosses and loot, item search, map markers, no fog of war.
+## Author: Saranwrap
+## Version: 1.6.7
+## SavedVariables: AtlasPlusDB
+
+Data\Maps.lua
+Data\Loot.lua
+Data\Zones.lua
+Data\Overlays.lua
+Data\ZoneRects.lua
+Data\Entrances.lua
+Data\Markers.lua
+Core.lua
+Widgets.lua
+WorldView.lua
+UI.lua
+WorldMap.lua
+Markers.lua
+Fog.lua
