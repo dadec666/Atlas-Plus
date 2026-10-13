@@ -1,3 +1,7 @@
+<p align="center">
+<img width="390" height="332" alt="atlas_plus_logo" src="https://github.com/user-attachments/assets/ffabe567-6f22-424f-a054-87bd57fa586d" />
+</p>
+
 # Atlas Plus
 
 **Instance maps with every boss and its loot.** For World of Warcraft 3.3.5a (Wrath of the Lich King).
