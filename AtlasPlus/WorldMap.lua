@@ -287,8 +287,23 @@ function WM:Attach()
     self.want = true
     Defer(function()
         local UI = AP.UI
-        if WM.want and UI.frame:IsShown() and UI.page == "world" then WM:Embed() end
+        if WM.want and UI.frame:IsShown() and UI.page == "world" then
+            if InCombatLockdown() then WM:CombatNotice(true) else WM:Embed() end   -- after combat (see below)
+        end
     end)
+end
+
+-- In combat the game forbids moving or hiding a window that holds protected frames, and the game's map
+-- can hold some. So the map leaves the Atlas Plus window when combat starts (just before the lock) and
+-- comes back when it ends. Meanwhile the map key opens the game's map as usual.
+function WM:CombatNotice(on)
+    local WV = AP.WorldView
+    if not WV.combatText then
+        WV.combatText = WV.layer:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+        WV.combatText:SetPoint("CENTER", WV.holder, "CENTER")
+        WV.combatText:SetText("In combat: the map comes back when the fight ends.\nThe map key (M) opens the game's map meanwhile.")
+    end
+    if on then WV.combatText:Show() else WV.combatText:Hide() end
 end
 
 function WM:Detach()
@@ -398,6 +413,12 @@ function WM:Init()
     -- the map key opens Atlas Plus (the quest log's map button and "Game map" still open the game's map)
     WorldMapFrame:HookScript("OnShow", function()
         if WM.internal or WM.embedded then return end
+        if InCombatLockdown() then
+            -- in combat: the game's map on its own; if Atlas Plus is open it closes (it holds no protected frame now)
+            local UI = AP.UI
+            if UI.frame:IsShown() and not UI.frame:IsProtected() then UI.frame:Hide() end
+            return
+        end
         -- opened while still inside a hidden Atlas Plus window: put it back on the screen
         if WorldMapFrame:GetParent() ~= UIParent and WorldMapFrame:GetParent() ~= nil then Restore(); WorldMapFrame:Show() return end
         if WM.failed then return end
@@ -418,13 +439,29 @@ function WM:Init()
             if not WM.embedded or WorldMapFrame:IsShown() then return end
             if WM.zoning and AP.UI.frame:IsShown() then
                 WM.internal = true; WorldMapFrame:Show(); WM.internal = nil
-            else
+            elseif not (InCombatLockdown() and AP.UI.frame:IsProtected()) then
                 AP.UI.frame:Hide()
             end
         end)
     end)
     local ev = CreateFrame("Frame")
     ev:RegisterEvent("PLAYER_ENTERING_WORLD")
+    local cf = CreateFrame("Frame")
+    cf:RegisterEvent("PLAYER_REGEN_DISABLED")
+    cf:RegisterEvent("PLAYER_REGEN_ENABLED")
+    cf:SetScript("OnEvent", function(_, event)
+        if event == "PLAYER_REGEN_DISABLED" then
+            if WM.embedded then
+                WM.want = true
+                WM:Release()
+                WM:CombatNotice(true)
+            end
+        else
+            WM:CombatNotice(false)
+            local UI = AP.UI
+            if UI.frame:IsShown() and UI.page == "world" then WM:Attach() end
+        end
+    end)
     ev:SetScript("OnEvent", function()
         -- the game closes its map on a loading screen; only that frame and the next count as "zoning"
         WM.zoning = true

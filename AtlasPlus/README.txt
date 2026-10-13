@@ -1,4 +1,4 @@
-ATLAS PLUS for WoW 3.3.5a - version 1.6.7
+ATLAS PLUS for WoW 3.3.5a - version 1.7.0
 World map and instance maps in one window: every boss and its loot, item search,
 map markers (dungeons, raids, world bosses, boats, zeppelins, tram, portals), no fog of war.
 By Saranwrap. Made for ChromieCraft (AzerothCore).
@@ -28,7 +28,9 @@ OPEN IT
 THE WINDOW
   Two tabs at the top: "World map" and "Atlas" (instance maps, bosses and loot).
   Move it by dragging its title, resize it with the corner at the bottom right.
-  Opacity in the settings. While you move, it fades to 50% unless the mouse is over it.
+  Opacity in the settings. While you move, it fades (50% by default, setting) unless the
+  mouse is over it. In combat the map leaves the window until the fight ends (the game
+  does not allow moving it then); the map key opens the game's map meanwhile.
 
   ATLAS TAB
 
@@ -68,6 +70,8 @@ WORLD MAP (inside Atlas Plus)
     Dungeons (blue) and raids (green): click one for its map, bosses and loot.
     World bosses, boats, zeppelins, the Deeprun Tram and portals: click one to go to
     the map where it leads (the arrival point pulses).
+    Town markers: flight masters, innkeepers, mailboxes, banks, auction houses (the game's
+    tracking icons), each on / off, with their own size.
     Ring color: blue Alliance, red Horde, gold neutral.
     Markers also show on continent maps (smaller), and can be turned off there.
     Group size in the tooltips: 5, 10, 25, 40, or 10/25 for the Wrath raids.
@@ -88,12 +92,12 @@ SETTINGS
   Settings button (or right-click the minimap button, or /ap settings). It is a window
   of its own: move it, resize it from its corner, and watch the map change as you go.
   Window       open on the map of where you are, open by itself in instances, minimap
-               button, lock, fade while moving, size, opacity.
+               button, lock, fade while moving, opacity while moving, size, opacity.
   World map    map key (M), game instance maps, no fog of war, darken unexplored areas,
                zone panel, zone info under the cursor, coordinates, quest icon size,
                opacity and small map size of the game's map opened on its own.
-  Map markers  each type on / off, on continent maps too, hide Questie's dungeon and
-               raid icons, only my faction's transports and portals, marker size.
+  Map markers  each type on / off (towns included), on continent maps too, hide Questie's
+               dungeon and raid icons, only my faction's, marker size, town marker size.
   Quest icon size changes the game's numbered quest icons. Questie's icons have their
   own size settings in Questie.
 

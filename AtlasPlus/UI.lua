@@ -167,7 +167,7 @@ function UI:Create()
         self.fadeT = 0
         local base = AP.db.alpha or 1
         local target = base
-        if AP.db.fadeMoving and GetUnitSpeed and GetUnitSpeed("player") > 0 and not MouseIsOver(self) then target = base * 0.5 end
+        if AP.db.fadeMoving and GetUnitSpeed and GetUnitSpeed("player") > 0 and not MouseIsOver(self) then target = base * (AP.db.fadeAlpha or 0.5) end
         local cur = self:GetAlpha()
         if math.abs(cur - target) > 0.01 then self:SetAlpha(cur + (target - cur) * 0.4) else self:SetAlpha(target) end
     end)
@@ -1095,7 +1095,8 @@ function UI:CreateSettings(f)
     mm:SetPoint("TOPLEFT", x0 + 4, y)
     y = y - 28
     Check("Lock the window", "It can't be moved by its title bar.", "locked")
-    Check("Fade while moving", "50% see-through while you move, unless the mouse is over it.", "fadeMoving")
+    Check("Fade while moving", "See-through while you move, unless the mouse is over it.", "fadeMoving")
+    Slider("Opacity while moving", 0.1, 1, 0.05, "fadeAlpha")
     Slider("Window size", 0.5, 1.6, 0.05, "scale", function() UI:ApplyLayout() end)
     Slider("Window opacity", 0.3, 1, 0.05, "alpha", function() UI:ApplyLayout() end)
     Note("Move the window: drag its title. Resize it: drag its bottom right corner.")
@@ -1114,24 +1115,27 @@ function UI:CreateSettings(f)
     Slider("Game small map size", 0.5, 1.5, 0.05, "gameSmallScale", function() AP.WorldMap:Update() end)
     Note("These two: the game's map opened on its own (Game map button).")
 
-    -- 3. map markers
+    -- 3. map markers: one switch per kind, two per line
     Column("Map markers", 750)
-    local function Marker(label, key, desc)
-        local cb = W.CheckBox(s, label, desc, function() return db().markers[key] end, function(v) db().markers[key] = v; AP.Markers:Refresh() end)
-        cb:SetPoint("TOPLEFT", x0 + 4, y)
-        y = y - (desc and 46 or 28)
+    local col = 0
+    local function Marker(label, key)
+        local cb = W.CheckBox(s, label, nil, function() return db().markers[key] end, function(v) db().markers[key] = v; AP.Markers:Refresh() end)
+        cb:SetPoint("TOPLEFT", x0 + 4 + col * 172, y)
+        if col == 1 then y = y - 24 end
+        col = 1 - col
     end
-    Marker("Dungeons (blue)", "dungeon")
-    Marker("Raids (green)", "raid", "Click a dungeon or raid icon: its map, bosses and loot.")
-    Marker("World bosses", "worldboss")
-    Marker("Boats", "boat")
-    Marker("Zeppelins", "zepp")
-    Marker("Deeprun Tram", "tram")
-    Marker("Portals", "portal", "Click a boat, zeppelin, tram or portal: the map where it goes.")
-    Check("Markers on continent maps", nil, "continentMarkers", function() AP.Markers:Refresh() end)
-    Check("Hide Questie's dungeon and raid icons", "While the Atlas Plus ones are on, so they don't show twice. Questie's come back when you turn these off.", "hideQuestieInstances", function() AP.Markers:SyncQuestie(true) end)
-    Check("Only my faction's transports and portals", "Neutral ones always show. Ring color: blue Alliance, red Horde, gold neutral.", "myFactionOnly", function() AP.Markers:Refresh() end)
+    Marker("Dungeons (blue)", "dungeon"); Marker("Raids (green)", "raid")
+    Marker("World bosses", "worldboss"); Marker("Portals", "portal")
+    Marker("Boats", "boat");             Marker("Zeppelins", "zepp")
+    Marker("Deeprun Tram", "tram");      Marker("Flight masters", "flight")
+    Marker("Innkeepers", "inn");         Marker("Mailboxes", "mail")
+    Marker("Banks", "bank");             Marker("Auction houses", "auction")
+    y = y - 6
+    Check("Markers on continent maps", "Not the town ones (flight masters, inns...).", "continentMarkers", function() AP.Markers:Refresh() end)
+    Check("Hide Questie's dungeon and raid icons", "While the Atlas Plus ones are on. They come back when you turn these off.", "hideQuestieInstances", function() AP.Markers:SyncQuestie(true) end)
+    Check("Only my faction's", "Transports, portals and town markers. Neutral ones always show.", "myFactionOnly", function() AP.Markers:Refresh() end)
     Slider("Marker size", 0.6, 2, 0.1, "pinScale", function() AP.Markers:Refresh() end)
+    Slider("Town marker size", 0.5, 2, 0.1, "townScale", function() AP.Markers:Refresh() end)
 
     -- credits
     local credits = W.Text(s, "GameFontDisableSmall")

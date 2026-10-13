@@ -9,7 +9,7 @@
 local ADDON_NAME = ...
 AtlasPlus = AtlasPlus or {}
 local AP = AtlasPlus
-AP.VERSION = "1.6.7"
+AP.VERSION = "1.7.0"
 AP.MEDIA = "Interface\\AddOns\\" .. ADDON_NAME .. "\\"
 AP.MAPS = AP.MEDIA .. "Images\\Maps\\"
 AP.ACCENT = "|cfffc7a2b"
@@ -24,7 +24,10 @@ local DEFAULTS = {
     worldZoneInfo = true,   -- world map: level range and instances of the zone under the cursor
     worldCoords = true,     -- world map: player and cursor coordinates
     zoneBlock = true,       -- world map page: info of the zone shown (top left)
-    markers = { dungeon = true, raid = true, worldboss = true, boat = true, zepp = true, tram = true, portal = true },
+    markers = { dungeon = true, raid = true, worldboss = true, boat = true, zepp = true, tram = true, portal = true,
+                flight = true, inn = true, mail = true, bank = true, auction = true },
+    townScale = 1,          -- size of the town markers (flight masters, inns, mailboxes, banks, auction houses)
+    fadeAlpha = 0.5,        -- window opacity while moving
     myFactionOnly = true,   -- transports and portals: only yours and neutral ones
     pinScale = 1,           -- size of the map markers
     continentMarkers = true,-- markers on continent maps too
