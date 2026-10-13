@@ -2,7 +2,7 @@
 
 **Instance maps with every boss and its loot.** For World of Warcraft 3.3.5a (Wrath of the Lich King).
 
-Version 1.6.7 · by Saranwrap · made for ChromieCraft (AzerothCore)
+Version 1.7.0 · by Saranwrap · made for ChromieCraft (AzerothCore)
 
 Atlas Plus puts the world map, the map of every dungeon and raid, their bosses and everything they drop in one clean window, and opens on the right map by itself. It also replaces map marker addons and removes the fog of war.
 
@@ -34,7 +34,7 @@ Atlas Plus does not need Atlas, AtlasLoot or another map addon. Use it alone: ot
 
 Open it with the map key (**M**), `/ap`, the minimap button or a key (**Escape → Key Bindings → Atlas Plus**).
 
-Two tabs at the top: **World map** and **Atlas** (instance maps, bosses and loot). Drag the title to move the window, drag the corner at the bottom right to resize it. While you move, it fades to 50% unless the mouse is over it.
+Two tabs at the top: **World map** and **Atlas** (instance maps, bosses and loot). Drag the title to move the window, drag the corner at the bottom right to resize it. While you move, it fades (50% by default, setting) unless the mouse is over it. In combat the map leaves the window until the fight ends, since the game doesn't allow moving it then; the map key opens the game's map meanwhile.
 
 In a dungeon or raid with a game map (Ulduar, Icecrown Citadel...), Atlas Plus opens that map on the World map page, on the floor you are on. The Atlas map stays in the **Atlas** tab.
 
@@ -66,6 +66,7 @@ The map key (**M**) opens Atlas Plus on its world map page. It holds **the game'
 | Dungeons (blue) and raids (green) | Its map, bosses and loot |
 | Boats, zeppelins, Deeprun Tram, portals | The map where it leads; the arrival point pulses |
 | World bosses | Their name and level |
+| Flight masters, innkeepers, mailboxes, banks, auction houses | Their name (each type on / off, own size) |
 
 Ring color: blue Alliance, red Horde, gold neutral. Markers also show (smaller) on continent maps. Tooltips give the group size: 5, 10, 25, 40, or 10/25 for the Wrath raids. Under the map: **Markers** chooses which ones show (and *Only my faction's* transports and portals), **Find** lists every marker of a continent by type, with a search box (name or zone); click one and the map goes there.
 
@@ -81,9 +82,9 @@ With Questie installed, its own dungeon and raid icons are hidden while the Atla
 
 | Column | Options |
 | --- | --- |
-| **Window** | Open on the map of where you are, open by itself in dungeons and raids, minimap button, lock, fade while moving, size, opacity |
+| **Window** | Open on the map of where you are, open by itself in dungeons and raids, minimap button, lock, fade while moving, opacity while moving, size, opacity |
 | **World map** | Map key (M), game instance maps, no fog of war, darken unexplored areas, zone panel, zone info under the cursor, coordinates, quest icon size, game map opacity and small map size |
-| **Map markers** | Each type on / off, on continent maps too, hide Questie's dungeon and raid icons, only my faction's transports and portals, marker size |
+| **Map markers** | Each type on / off (towns included), on continent maps too, hide Questie's dungeon and raid icons, only my faction's, marker size, town marker size |
 
 *Quest icon size* changes the game's numbered quest icons; Questie's icons have their own size settings in Questie.
 
