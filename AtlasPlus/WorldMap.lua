@@ -153,6 +153,7 @@ function WM:EmbedInner()
         local o = _G[n]
         if o then self.hidden[n] = o:IsShown(); o:Hide() end
     end
+    self:ResetAlpha()
     WorldMapFrame:SetParent(holder)
     WorldMapFrame:SetFrameStrata(holder:GetFrameStrata())
     WorldMapFrame:SetAlpha(1)
@@ -224,13 +225,20 @@ function WM:ReleaseInner()
     WorldMapFrame:Hide()
     self.embedded = nil
     WorldMapFrame:SetParent(UIParent)
-    WorldMapFrame:SetScale(self.saved.scale or 1)
+    -- the game's map is always at scale 1 (the small map size of the settings is applied when it opens)
+    WorldMapFrame:SetScale(1)
     WorldMapFrame:SetFrameStrata(self.saved.strata or "MEDIUM")
     WorldMapFrame:SetAlpha(self.saved.alpha or 1)
     WorldMapFrame:SetClampedToScreen(true)
+    -- no anchor left on the Atlas Plus window: the game places its map again
+    WorldMapFrame:ClearAllPoints()
+    WorldMapFrame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 16, -116)
     for _, n in ipairs(TOOLTIPS) do if _G[n] then _G[n]:SetScale(1) end end
     if WorldMapLevelDropDown then WorldMapLevelDropDown:SetScale(1) end
-    for n, shown in pairs(self.hidden) do if shown then _G[n]:Show() end end
+    -- borders, title, close and size buttons back (the size functions below hide what their size does not use)
+    for _, n in ipairs(HIDE_WHEN_EMBEDDED) do
+        if n ~= "WorldMapTrackQuest" and _G[n] then _G[n]:Show() end
+    end
     -- back to the game's own layout (small or full screen, as the player last used it)
     if GetCVarBool and GetCVarBool("miniWorldMap") then
         if WorldMap_ToggleSizeDown then WorldMap_ToggleSizeDown() end
@@ -240,6 +248,21 @@ function WM:ReleaseInner()
     if WorldMapFrame_ResetFrameLevels then WorldMapFrame_ResetFrameLevels() end
     self.internal = nil
     self:Update()
+end
+
+-- the game's map on its own must stay on the screen, with its title and close button visible
+function WM:KeepOnScreen()
+    if self.embedded or not WorldMapFrame:IsShown() then return end
+    local top, left = WorldMapFrame:GetTop(), WorldMapFrame:GetLeft()
+    local s = WorldMapFrame:GetEffectiveScale() / UIParent:GetEffectiveScale()
+    if not top or not left then return end
+    if top * s > UIParent:GetHeight() + 2 or left * s < -2 or (WorldMapFrame:GetWidth() * s > UIParent:GetWidth() + 4) then
+        if WorldMapFrame:GetWidth() * s > UIParent:GetWidth() then WorldMapFrame:SetScale(1) end
+        if WORLDMAP_SETTINGS and WORLDMAP_SETTINGS.size == WindowedSize() then
+            WorldMapFrame:ClearAllPoints()
+            WorldMapFrame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 16, -116)
+        end
+    end
 end
 
 -- the World map page asks for the map (next frame), or gives it back (now)
@@ -258,7 +281,9 @@ local function Restore()
     pcall(WorldMapFrame.SetParent, WorldMapFrame, UIParent)
     pcall(WorldMapFrame.SetScale, WorldMapFrame, 1)
     pcall(WorldMapFrame.SetClampedToScreen, WorldMapFrame, true)
-    if WM.hidden then for n, shown in pairs(WM.hidden) do if shown and _G[n] then pcall(_G[n].Show, _G[n]) end end end
+    pcall(WorldMapFrame.ClearAllPoints, WorldMapFrame)
+    pcall(WorldMapFrame.SetPoint, WorldMapFrame, "TOPLEFT", UIParent, "TOPLEFT", 16, -116)
+    for _, n in ipairs(HIDE_WHEN_EMBEDDED) do if n ~= "WorldMapTrackQuest" and _G[n] then pcall(_G[n].Show, _G[n]) end end
     if GetCVarBool and GetCVarBool("miniWorldMap") then pcall(WorldMap_ToggleSizeDown) else pcall(WorldMap_ToggleSizeUp) end
     WM.internal = nil
 end
@@ -315,9 +340,19 @@ end
 function WM:OpenGameMap()
     AP.UI.frame:Hide()
     self:Detach()
-    self.allowGameMap = true
-    ShowUIPanel(WorldMapFrame)
-    self.allowGameMap = nil
+    -- one frame later: the map is fully given back to the game first
+    Defer(function()
+        if InCombatLockdown() then return end
+        -- the small map, at the size of the settings (its button on the map goes full screen)
+        if WORLDMAP_SETTINGS and WORLDMAP_SETTINGS.size ~= WindowedSize() and WorldMap_ToggleSizeDown then
+            WorldMap_ToggleSizeDown()
+        end
+        self.allowGameMap = true
+        ShowUIPanel(WorldMapFrame)
+        self.allowGameMap = nil
+        self:ApplySize()
+        self:KeepOnScreen()
+    end)
 end
 
 ---------------------------------------------------------------------------
@@ -381,14 +416,45 @@ local function IsSmallMap()
     return WORLDMAP_SETTINGS and WORLDMAP_WINDOWED_SIZE and WORLDMAP_SETTINGS.size == WORLDMAP_WINDOWED_SIZE
 end
 
+-- opacity of the game's map on its own: on the map's parts too (other addons can reset the frame's alpha)
+local ALPHA_PARTS = { "WorldMapDetailFrame", "WorldMapFrameMiniBorderLeft", "WorldMapFrameMiniBorderRight", "WorldMapPOIFrame", "BlackoutWorld" }
+function WM:ApplyAlpha()
+    if not WorldMapFrame or self.embedded then return end
+    local a = AP.db.gameMapAlpha or 1
+    WorldMapFrame:SetAlpha(1)
+    if a >= 1 then self:ResetAlpha() return end
+    for _, n in ipairs(ALPHA_PARTS) do
+        local o = _G[n]
+        if o and o.SetAlpha then o:SetAlpha(a) end
+    end
+    self.alphaApplied = a < 1
+end
+
+-- back to the game's own opacity (inside Atlas Plus the map is opaque)
+function WM:ResetAlpha()
+    if not self.alphaApplied then return end
+    self.alphaApplied = nil
+    for _, n in ipairs(ALPHA_PARTS) do
+        local o = _G[n]
+        if o and o.SetAlpha then o:SetAlpha(1) end
+    end
+    if WorldMapFrame_SetOpacity and WORLDMAP_SETTINGS and WORLDMAP_SETTINGS.opacity then
+        pcall(WorldMapFrame_SetOpacity, WORLDMAP_SETTINGS.opacity)
+    end
+end
+
 function WM:ApplySize()
     if not WorldMapFrame or self.embedded then return end
-    WorldMapFrame:SetAlpha(AP.db.gameMapAlpha or 1)
+    self:ApplyAlpha()
     if IsSmallMap() then
-        WorldMapFrame:SetScale(AP.db.gameSmallScale or 1)
+        local sc = AP.db.gameSmallScale or 1
+        -- never bigger than the screen
+        local fit = math.min(UIParent:GetWidth() / 640, UIParent:GetHeight() / 470)
+        if sc > fit then sc = fit end
+        if math.abs(WorldMapFrame:GetScale() - sc) > 0.001 then WorldMapFrame:SetScale(sc) end
         self.scaled = true
+        self:KeepOnScreen()
     elseif self.scaled then
-        WorldMapFrame:SetScale(1)
         self.scaled = nil
     end
 end
@@ -423,6 +489,7 @@ function WM:Init()
         if WorldMapFrame:GetParent() ~= UIParent and WorldMapFrame:GetParent() ~= nil then Restore(); WorldMapFrame:Show() return end
         if WM.failed then return end
         WM:ApplySize()
+        WM:KeepOnScreen()
         if AP.db.replaceWorldMap and not WM.allowGameMap and not (QuestLogFrame and QuestLogFrame:IsShown()) then
             HideUIPanel(WorldMapFrame)
             local UI = AP.UI
@@ -430,6 +497,16 @@ function WM:Init()
             if UI.frame:IsShown() then UI.frame:Hide()
             elseif not (UI.lastHide and GetTime() - UI.lastHide < 0.05) then UI:Show() end
         end
+    end)
+
+    -- the game's full screen map hides the whole interface; make sure it comes back when the map closes
+    WorldMapFrame:HookScript("OnHide", function()
+        if WM.embedded or WM.internal then return end
+        Defer(function()
+            if WorldMapFrame:IsShown() or UIParent:IsShown() or InCombatLockdown() then return end
+            if GetUIPanel and GetUIPanel("fullscreen") == WorldMapFrame then HideUIPanel(WorldMapFrame) end
+            if not UIParent:IsShown() then UIParent:Show() end
+        end)
     end)
 
     -- the map inside Atlas Plus was closed by the game: map key = close Atlas Plus, loading screen = put it back
@@ -467,6 +544,13 @@ function WM:Init()
         WM.zoning = true
         Defer(function() Defer(function() WM.zoning = nil end) end)
     end)
+
+    -- the game sets the opacity of its small map itself: ours again afterwards
+    if WorldMapFrame_SetOpacity then
+        hooksecurefunc("WorldMapFrame_SetOpacity", function()
+            if not WM.embedded and (AP.db.gameMapAlpha or 1) < 1 then WM:ApplyAlpha() end
+        end)
+    end
 
     -- the game keeps showing the "track quest" box: not on the Atlas Plus page
     if WorldMapFrame_DisplayQuests then

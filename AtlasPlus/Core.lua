@@ -9,7 +9,7 @@
 local ADDON_NAME = ...
 AtlasPlus = AtlasPlus or {}
 local AP = AtlasPlus
-AP.VERSION = "1.7.0"
+AP.VERSION = "1.10.0"
 AP.MEDIA = "Interface\\AddOns\\" .. ADDON_NAME .. "\\"
 AP.MAPS = AP.MEDIA .. "Images\\Maps\\"
 AP.ACCENT = "|cfffc7a2b"
@@ -40,6 +40,7 @@ local DEFAULTS = {
     replaceWorldMap = true, -- the world map key (M) opens Atlas Plus on its world map page
     gameMapAlpha = 1,       -- the game's own world map (when opened from Atlas Plus)
     gameSmallScale = 1,     -- the game's small world map
+    listW = 175,            -- width of the instance list (drag the bar between the list and the map)
     lastMap = "TheDeadmines",
     modes = {},             -- last loot mode per map
     collapsed = {},         -- collapsed categories in the list
@@ -50,8 +51,17 @@ AP.CATEGORIES = {
     "Classic Dungeons", "Classic Raids",
     "Burning Crusade Dungeons", "Burning Crusade Raids",
     "Wrath of the Lich King Dungeons", "Wrath of the Lich King Raids",
+    "World Drops", "World Events", "Vendors",
     "Entrances", "Dungeon Locations",
 }
+-- icon of the pages that have no map
+AP.CAT_ICON = {
+    ["World Drops"] = "Interface\\Icons\\INV_Misc_Bag_10_Blue",
+    ["World Events"] = "Interface\\Icons\\INV_Misc_Gift_02",
+    ["Vendors"] = "Interface\\Icons\\INV_Misc_Coin_02",
+}
+-- the server's current phase (ChromieCraft), for the emblems
+AP.PHASE = "Phase 3, Ulduar"
 
 AP.MODE_LABEL = { N = "Normal", H = "Heroic", ["10"] = "10", ["25"] = "25", ["10H"] = "10 Heroic", ["25H"] = "25 Heroic" }
 
@@ -88,6 +98,7 @@ function AP:BuildIndex()
     for cat, list in pairs(byCat) do
         table.sort(list, function(a, b)
             local ma, mb = AtlasPlus_Maps[a], AtlasPlus_Maps[b]
+            if ma.order or mb.order then return (ma.order or 0) < (mb.order or 0) end
             if cat ~= "Entrances" and cat ~= "Dungeon Locations" then
                 local la, lb = MinLevel(ma), MinLevel(mb)
                 if la ~= lb then return la < lb end
@@ -137,7 +148,7 @@ function AP:FindMapForLocation()
     if inInstance then
         if ZONE_FIX[zone] then return ZONE_FIX[zone] end
         for key, m in pairs(AtlasPlus_Maps) do
-            if m.cat ~= "Entrances" and m.cat ~= "Dungeon Locations" then
+            if m.cat ~= "Entrances" and m.cat ~= "Dungeon Locations" and not m.nomap then
                 local full = (m.full or ""):gsub("%s*%b[]", ""):gsub("%s*%b()", "")
                 if full == zone or ZoneShortName(m) == zone then return key end
             end
@@ -154,7 +165,7 @@ function AP:KeyForZoneName(zone)
     if A.defaults[zone] then return A.defaults[zone] end
     if ZONE_FIX[zone] then return ZONE_FIX[zone] end
     for key, m in pairs(AtlasPlus_Maps) do
-        if m.cat ~= "Entrances" and m.cat ~= "Dungeon Locations" then
+        if m.cat ~= "Entrances" and m.cat ~= "Dungeon Locations" and not m.nomap then
             local full = (m.full or ""):gsub("%s*%b[]", ""):gsub("%s*%b()", "")
             if full == zone or ZoneShortName(m) == zone then return key end
         end

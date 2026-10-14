@@ -1,5 +1,6 @@
-ATLAS PLUS for WoW 3.3.5a - version 1.7.0
-World map and instance maps in one window: every boss and its loot, item search,
+ATLAS PLUS for WoW 3.3.5a - version 1.10.0
+World map and instance maps in one window: every boss and its loot, world drops,
+world events, vendors, item search,
 map markers (dungeons, raids, world bosses, boats, zeppelins, tram, portals), no fog of war.
 By Saranwrap. Made for ChromieCraft (AzerothCore).
 
@@ -34,24 +35,45 @@ THE WINDOW
 
   ATLAS TAB
 
-  Left     every instance, by expansion: dungeons, raids, entrances and dungeon locations.
+  Left     every instance, by expansion: dungeons and raids, then World Drops, World Events,
+           Vendors, entrances and dungeon locations.
            Every list is folded when the window opens. Click a title to open it.
   Middle   the map, with numbered bosses and points of interest.
            Right-click on it: back to the world map, as you left it.
+  Between the list and the map: drag the bar to make the list wider or narrower
+           (right-click on it: back to the first width).
   Right    the legend of the map. A boss with "loot >" opens its loot:
              - Normal / Heroic (dungeons) or 10 / 25 / 10 Heroic / 25 Heroic (raids)
-             - drop chance of each item, HM = hard mode (Ulduar, Steelbreaker last for the
+             - drop chance of each item ("2x" = two drop at once, like emblems), HM = hard mode (Ulduar, Steelbreaker last for the
                Assembly of Iron) or drakes up (Sartharion)
              - A / H = Alliance / Horde only
+             - class items (Vault of Archavon PvP sets, tier pieces...) in a folded list per
+               class, like the instance list; your class is open. Click a class to open it.
+             - emblems: the one of the server's current phase first ("current phase"), then
+               the one it gives in a later phase ("later phase")
              - right-click in the loot list: back to the bosses
            "Trash mobs" at the end of the legend: what the trash of that instance drops.
            "Entrance map" / "Instances" switch between an instance and its entrance.
 
   Items: hover for the tooltip, Shift-click to link, Ctrl-click to try on.
 
+  WORLD DROPS, WORLD EVENTS, VENDORS (in the list on the left, no map)
+    World Drops   Classic, Burning Crusade, Wrath: rare and epic items and recipes any
+                  creature of the right level can drop. "L53-60" = creature levels,
+                  chance per kill for a typical creature.
+    World Events  Hallow's End, Brewfest, Love is in the Air, Midsummer, Winter Veil,
+                  Lunar Festival, Noblegarden, Children's Week, Pilgrim's Bounty,
+                  Darkmoon Faire and more: holiday bosses and their bags (drop chances),
+                  event vendors (prices) and quest rewards ("Quest", the tooltip names it).
+    Vendors       one page per currency (badges, emblems, Stone Keeper's Shards,
+                  Champion's Seals, honor, arena points, marks...): every vendor, its
+                  zone, and the price of each item.
+
   SEARCH
-    The box at the top searches the loot of every instance (item name or type, such as
-    "trinket" or "two-hand"). Click a result to open its boss.
+    The box at the top finds instances (name or short name: ICC, Uld, EoE, VoA, OS...),
+    bosses, events, vendors and items (item name or type, such as "trinket" or
+    "two-hand"). Each item result says where it comes from: boss, world drop, event,
+    vendor or quest. Instances and bosses come first. Click a result to open it.
 
 
 WORLD MAP (inside Atlas Plus)
@@ -83,9 +105,10 @@ WORLD MAP (inside Atlas Plus)
     (setting), and come back when you turn these off.
 
   THE GAME'S MAP ON ITS OWN
-    "Game map" (top right of the page) or the quest log's map button opens the game's
-    map full screen, with the quest list. It also gets the zone info and coordinates,
-    plus an opacity setting and a size setting for its small mode.
+    "Game map" (top right of the page) opens the game's small map (its own button makes it
+    full screen, with the quest list); the quest log's map button opens it too. It also
+    gets the zone info and coordinates, plus an opacity setting and a size setting that
+    change it even while it is open. It always stays on the screen.
     To get the game's map back on M, untick "The map key (M) opens Atlas Plus".
 
 SETTINGS
@@ -106,7 +129,7 @@ COMMANDS
   /ap                   open / close
   /ap here              the map of where you are
   /ap world             the world map page
-  /ap search <item>     search the loot of every instance
+  /ap search <text>     search instances, bosses, events, vendors and items
   /ap settings          settings
   /ap reset             window position, size and opacity
 
@@ -114,8 +137,14 @@ COMMANDS
 ABOUT THE DATA
   Maps and legends: Atlas by Dan Gilbert and contributors (GNU GPL v2). Atlas Plus is
   released under the same license (LICENSE.txt).
-  Loot and drop chances: the AzerothCore world database (the core ChromieCraft runs on).
-  A server can change some of its loot, so treat the chances as a guide.
+  Loot, drop chances, vendors, quests, world events: the AzerothCore world database (the
+  core ChromieCraft runs on). A server can change some of its loot, so treat the chances
+  as a guide. World drop chances are for a typical creature of the level. Event dates
+  are the usual ones; the server's calendar has the exact dates.
+  Emblems by phase: ChromieCraft's progression module (mod-progression-system), up to
+  Phase 3 (Ulduar). When the server reaches a new phase, the "current phase" emblems can
+  be out of date until Atlas Plus is updated.
+  Prices: the game's ItemExtendedCost table.
   Zone levels and instances: LibTourist-3.0 (MIT, ckknight and Arrowmaster).
   Boats, zeppelins, portals, world bosses: the AzerothCore world database (transport
   routes, portals and their destinations, spawns), placed on the maps with the game's
