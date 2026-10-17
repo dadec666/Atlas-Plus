@@ -161,7 +161,7 @@ L["Instance maps with every boss and its loot, item search, and world map zone i
 
 -- World Map coords & combat notice
 L["Player"] = "Игрок"
-L["Cursor"] = "Cursor"
+L["Cursor"] = "Курсор"
 L["Map controls disabled in combat"] = "Управление картой отключено в бою"
 L["could not %s the game's map (%s). It opens on its own instead; please report this message."] = "не удалось %s игровую карту (%s). Она откроется отдельно."
 
@@ -455,4 +455,322 @@ local ruMaps = {
 }
 for k, v in pairs(ruMaps) do
     AP.GAME_MAP_IDS[k] = v
+end
+
+-- Categories short
+L["Wrath Dungeons"] = "Подземелья Wrath"
+L["Wrath Raids"] = "Рейды Wrath"
+
+-- Factions
+L["Alliance"] = "Альянс"
+L["Horde"] = "Орда"
+L["Neutral"] = "Нейтральный"
+
+-- World Bosses
+L["Ysondre"] = "Исондра"
+L["Taerar"] = "Таэрар"
+L["Emeriss"] = "Эмерисс"
+L["Lethon"] = "Летон"
+L["Azuregos"] = "Азурегос"
+L["Lord Kazzak"] = "Владыка Каззак"
+
+-- All WoW 3.3.5 Zones & Instances
+L["Ahn'Qiraj"] = "Ан'Кираж"
+L["Ahn'kahet: The Old Kingdom"] = "Ан'кахет: Старое Королевство"
+L["Alterac Mountains"] = "Альтеракские горы"
+L["Alterac Valley"] = "Альтеракская долина"
+L["Amani Pass"] = "Перевал Амани"
+L["Arathi Basin"] = "Низина Арати"
+L["Arathi Highlands"] = "Нагорье Арати"
+L["Armory"] = "Оружейная"
+L["Ashenvale"] = "Ясеневый лес"
+L["Auchenai Crypts"] = "Аукенайские гробницы"
+L["Azeroth"] = "Азерот"
+L["Azjol-Nerub"] = "Азжол-Неруб"
+L["Azshara"] = "Азшара"
+L["Azuremyst Isle"] = "Остров Лазурной Дымки"
+L["Badlands"] = "Бесплодные земли"
+L["Black Temple"] = "Черный храм"
+L["Blackfathom Deeps"] = "Непроглядная Пучина"
+L["Blackrock Depths"] = "Глубины Черной горы"
+L["Blackrock Mountain"] = "Черная гора"
+L["Blackrock Spire"] = "Пик Черной горы"
+L["Blackwing Lair"] = "Логово Крыла Тьмы"
+L["Blade's Edge Arena"] = "Арена Острогорья"
+L["Blade's Edge Mountains"] = "Острогорье"
+L["Blasted Lands"] = "Выжженные земли"
+L["Bloodmyst Isle"] = "Остров Кровавой Дымки"
+L["Borean Tundra"] = "Борейская тундра"
+L["Burning Steppes"] = "Пылающие степи"
+L["Cathedral"] = "Собор"
+L["Caverns of Time"] = "Пещеры Времени"
+L["Coilfang Reservoir"] = "Резервуар Кривого Клыка"
+L["Coldarra"] = "Хладоарра"
+L["Crystalsong Forest"] = "Лес Хрустальной Песни"
+L["Dalaran"] = "Даларан"
+L["Dalaran Arena"] = "Арена Даларана"
+L["Darkshore"] = "Темные берега"
+L["Darnassus"] = "Дарнас"
+L["Deadwind Pass"] = "Перевал Мертвого Ветра"
+L["Deeprun Tram"] = "Подземный поезд"
+L["Desolace"] = "Пустоши"
+L["Dire Maul"] = "Забытый Город"
+L["Dragonblight"] = "Драконий Погост"
+L["Drak'Tharon Keep"] = "Крепость Драк'Тарон"
+L["Dun Morogh"] = "Дун Морог"
+L["Durotar"] = "Дуротар"
+L["Duskwood"] = "Сумеречный лес"
+L["Dustwallow Marsh"] = "Пылевые топи"
+L["Eastern Kingdoms"] = "Восточные королевства"
+L["Eastern Plaguelands"] = "Восточные Чумные земли"
+L["Elwynn Forest"] = "Элвиннский лес"
+L["Eversong Woods"] = "Леса Вечной Песни"
+L["Eye of the Storm"] = "Око Бури"
+L["Felwood"] = "Оскверненный лес"
+L["Feralas"] = "Фералас"
+L["Ghostlands"] = "Призрачные земли"
+L["Gnomeregan"] = "Гномереган"
+L["Graveyard"] = "Кладбище"
+L["Grizzly Hills"] = "Седые холмы"
+L["Gruul's Lair"] = "Логово Груула"
+L["Gundrak"] = "Гундрак"
+L["Halls of Lightning"] = "Чертоги Молний"
+L["Halls of Reflection"] = "Залы Отражений"
+L["Halls of Stone"] = "Чертоги Камня"
+L["Hellfire Citadel"] = "Цитадель Адского Пламени"
+L["Hellfire Peninsula"] = "Полуостров Адского Пламени"
+L["Hellfire Ramparts"] = "Бастионы Адского Пламени"
+L["Hillsbrad Foothills"] = "Предгорья Хилсбрада"
+L["Howling Fjord"] = "Ревущий фьорд"
+L["Hrothgar's Landing"] = "Лагерь Хротгара"
+L["Hyjal"] = "Хиджал"
+L["Hyjal Summit"] = "Вершина Хиджала"
+L["Icecrown"] = "Ледяная Корона"
+L["Icecrown Citadel"] = "Цитадель Ледяной Короны"
+L["Ironforge"] = "Стальгорн"
+L["Isle of Quel'Danas"] = "Остров Кель'Данас"
+L["Kalimdor"] = "Калимдор"
+L["Karazhan"] = "Каражан"
+L["Library"] = "Библиотека"
+L["Loch Modan"] = "Лок Модан"
+L["Magisters' Terrace"] = "Терраса Магистров"
+L["Magtheridon's Lair"] = "Логово Магтеридона"
+L["Mana-Tombs"] = "Гробницы маны"
+L["Maraudon"] = "Мародон"
+L["Molten Core"] = "Огненные Недра"
+L["Moonglade"] = "Лунная поляна"
+L["Mulgore"] = "Мулгор"
+L["Nagrand"] = "Награнд"
+L["Nagrand Arena"] = "Арена Награнда"
+L["Naxxramas"] = "Наксрамас"
+L["Netherstorm"] = "Пустоверть"
+L["Northrend"] = "Нордскол"
+L["Old Hillsbrad Foothills"] = "Старые предгорья Хилсбрада"
+L["Onyxia's Lair"] = "Логово Ониксии"
+L["Orgrimmar"] = "Оргриммар"
+L["Outland"] = "Запределье"
+L["Pit of Saron"] = "Яма Сарона"
+L["Plaguelands: The Scarlet Enclave"] = "Чумные земли: Анклав Алого ордена"
+L["Ragefire Chasm"] = "Огненная Пропасть"
+L["Razorfen Downs"] = "Курганы Иглошкурых"
+L["Razorfen Kraul"] = "Лабиринты Иглошкурых"
+L["Redridge Mountains"] = "Красногорье"
+L["Ring of Observance"] = "Кольцо Почитания"
+L["Ruins of Ahn'Qiraj"] = "Руины Ан'Киража"
+L["Ruins of Lordaeron"] = "Руины Лордерона"
+L["Scarlet Monastery"] = "Монастырь Алого ордена"
+L["Scholomance"] = "Некроситет"
+L["Searing Gorge"] = "Тлеющее ущелье"
+L["Serpentshrine Cavern"] = "Змеиное святилище"
+L["Sethekk Halls"] = "Сетеккские залы"
+L["Shadow Labyrinth"] = "Темный лабиринт"
+L["Shadowfang Keep"] = "Крепость Темного Клыка"
+L["Shadowmoon Valley"] = "Долина Призрачной Луны"
+L["Shattrath City"] = "Шаттрат"
+L["Sholazar Basin"] = "Низина Шолазар"
+L["Silithus"] = "Силитус"
+L["Silvermoon City"] = "Луносвет"
+L["Silverpine Forest"] = "Серебряный бор"
+L["Stonetalon Mountains"] = "Когтистые горы"
+L["Stormwind City"] = "Штормград"
+L["Strand of the Ancients"] = "Берег Древних"
+L["Stranglethorn Vale"] = "Тернистая долина"
+L["Stratholme"] = "Стратхольм"
+L["Sunwell Plateau"] = "Плато Солнечного Колодца"
+L["Swamp of Sorrows"] = "Болото Печали"
+L["Tanaris"] = "Танарис"
+L["Teldrassil"] = "Тельдрассил"
+L["Tempest Keep"] = "Крепость Бурь"
+L["Terokkar Forest"] = "Лес Тероккар"
+L["The Arcatraz"] = "Аркатрац"
+L["The Barrens"] = "Степи"
+L["The Black Morass"] = "Черные топи"
+L["The Blood Furnace"] = "Кузня Крови"
+L["The Botanica"] = "Ботаника"
+L["The Culling of Stratholme"] = "Очищение Стратхольма"
+L["The Dark Portal"] = "Темный Портал"
+L["The Deadmines"] = "Мертвые копи"
+L["The Exodar"] = "Экзодар"
+L["The Eye"] = "Око"
+L["The Eye of Eternity"] = "Око Вечности"
+L["The Forge of Souls"] = "Кузня Душ"
+L["The Frozen Sea"] = "Ледяное море"
+L["The Hinterlands"] = "Внутренние земли"
+L["The Mechanar"] = "Механар"
+L["The Nexus"] = "Нексус"
+L["The Obsidian Sanctum"] = "Обсидиановое святилище"
+L["The Oculus"] = "Окулус"
+L["The Ruby Sanctum"] = "Рубиновое святилище"
+L["The Shattered Halls"] = "Разрушенные залы"
+L["The Slave Pens"] = "Узилище"
+L["The Steamvault"] = "Паровое подземелье"
+L["The Stockade"] = "Тюрьма"
+L["The Storm Peaks"] = "Грозовая Гряда"
+L["The Temple of Atal'Hakkar"] = "Храм Атал'Хаккара"
+L["The Underbog"] = "Нижетопь"
+L["The Violet Hold"] = "Аметистовая крепость"
+L["Thousand Needles"] = "Тысяча Игл"
+L["Thunder Bluff"] = "Громовой Утес"
+L["Tirisfal Glades"] = "Тирисфальские леса"
+L["Trial of the Champion"] = "Испытание чемпиона"
+L["Trial of the Crusader"] = "Испытание крестоносца"
+L["Uldaman"] = "Ульдаман"
+L["Ulduar"] = "Ульдуар"
+L["Un'Goro Crater"] = "Кратер Ун'Горо"
+L["Undercity"] = "Подгород"
+L["Utgarde Keep"] = "Крепость Утгард"
+L["Utgarde Pinnacle"] = "Вершина Утгард"
+L["Vault of Archavon"] = "Склеп Аркавона"
+L["Wailing Caverns"] = "Пещеры Стенаний"
+L["Warsong Gulch"] = "Ущелье Песни Войны"
+L["Western Plaguelands"] = "Западные Чумные земли"
+L["Westfall"] = "Западный Край"
+L["Wetlands"] = "Болотина"
+L["Wintergrasp"] = "Озеро Ледяных Оков"
+L["Winterspring"] = "Зимние Ключи"
+L["Zangarmarsh"] = "Зангартопь"
+L["Zul'Aman"] = "Зул'Аман"
+L["Zul'Drak"] = "Зул'Драк"
+L["Zul'Farrak"] = "Зул'Фаррак"
+L["Zul'Gurub"] = "Зул'Гуруб"
+
+---------------------------------------------------------------------------
+-- Item types & sub-types
+---------------------------------------------------------------------------
+local ITEM_TYPES_RU = {
+    -- Armor slots + type
+    ["Feet, Cloth"] = "Ступни, Ткань",
+    ["Feet, Leather"] = "Ступни, Кожа",
+    ["Feet, Mail"] = "Ступни, Кольчуга",
+    ["Feet, Plate"] = "Ступни, Латы",
+    ["Head, Cloth"] = "Голова, Ткань",
+    ["Head, Leather"] = "Голова, Кожа",
+    ["Head, Mail"] = "Голова, Кольчуга",
+    ["Head, Plate"] = "Голова, Латы",
+    ["Shoulder, Cloth"] = "Плечи, Ткань",
+    ["Shoulder, Leather"] = "Плечи, Кожа",
+    ["Shoulder, Mail"] = "Плечи, Кольчуга",
+    ["Shoulder, Plate"] = "Плечи, Латы",
+    ["Chest, Cloth"] = "Грудь, Ткань",
+    ["Chest, Leather"] = "Грудь, Кожа",
+    ["Chest, Mail"] = "Грудь, Кольчуга",
+    ["Chest, Plate"] = "Грудь, Латы",
+    ["Wrist, Cloth"] = "Запястья, Ткань",
+    ["Wrist, Leather"] = "Запястья, Кожа",
+    ["Wrist, Mail"] = "Запястья, Кольчуга",
+    ["Wrist, Plate"] = "Запястья, Латы",
+    ["Hands, Cloth"] = "Кисти рук, Ткань",
+    ["Hands, Leather"] = "Кисти рук, Кожа",
+    ["Hands, Mail"] = "Кисти рук, Кольчуга",
+    ["Hands, Plate"] = "Кисти рук, Латы",
+    ["Waist, Cloth"] = "Пояс, Ткань",
+    ["Waist, Leather"] = "Пояс, Кожа",
+    ["Waist, Mail"] = "Пояс, Кольчуга",
+    ["Waist, Plate"] = "Пояс, Латы",
+    ["Legs, Cloth"] = "Ноги, Ткань",
+    ["Legs, Leather"] = "Ноги, Кожа",
+    ["Legs, Mail"] = "Ноги, Кольчуга",
+    ["Legs, Plate"] = "Ноги, Латы",
+
+    -- Slots
+    ["Neck"] = "Шея",
+    ["Finger"] = "Палец",
+    ["Trinket"] = "Аксессуар",
+    ["Back"] = "Спина",
+    ["Shirt"] = "Рубашка",
+    ["Tabard"] = "Гербовая накидка",
+    ["Held In Off-hand"] = "Левая рука",
+    ["Shield"] = "Щит",
+    ["Off Hand"] = "Левая рука",
+    ["Main Hand"] = "Правая рука",
+    ["One-Hand"] = "Одноручное",
+    ["Two-Hand"] = "Двуручное",
+
+    -- Weapons
+    ["One-Hand Axe"] = "Одноручный топор",
+    ["One-Hand Mace"] = "Одноручное дробящее",
+    ["One-Hand Sword"] = "Одноручный меч",
+    ["One-Hand Dagger"] = "Кинжал",
+    ["Two-Hand Axe"] = "Двуручный топор",
+    ["Two-Hand Mace"] = "Двуручное дробящее",
+    ["Two-Hand Sword"] = "Двуручный меч",
+    ["Main Hand Dagger"] = "Кинжал (правая рука)",
+    ["Main Hand Axe"] = "Топор (правая рука)",
+    ["Main Hand Mace"] = "Дробящее (правая рука)",
+    ["Main Hand Sword"] = "Меч (правая рука)",
+    ["Main Hand Fist"] = "Кистевое (правая рука)",
+    ["Off Hand Dagger"] = "Кинжал (левая рука)",
+    ["Off Hand Axe"] = "Топор (левая рука)",
+    ["Off Hand Mace"] = "Дробящее (левая рука)",
+    ["Off Hand Sword"] = "Меч (левая рука)",
+    ["Off Hand Fist"] = "Кистевое (левая рука)",
+    ["Dagger"] = "Кинжал",
+    ["Fist Weapon"] = "Кистевое",
+    ["Polearm"] = "Древковое",
+    ["Staff"] = "Посох",
+    ["Bow"] = "Лук",
+    ["Crossbow"] = "Арбалет",
+    ["Gun"] = "Огнестрельное",
+    ["Wand"] = "Жезл",
+    ["Thrown"] = "Метательное",
+    ["Relic"] = "Реликвия",
+    ["Idol"] = "Идол",
+    ["Libram"] = "Манускрипт",
+    ["Totem"] = "Тотем",
+    ["Sigil"] = "Печать",
+
+    -- Professions / Recipes
+    ["Pattern - Blacksmithing"] = "Кузнечное дело (рецепт)",
+    ["Pattern - Leatherworking"] = "Кожевничество (выкройка)",
+    ["Pattern - Tailoring"] = "Портняжное дело (выкройка)",
+    ["Pattern - Engineering"] = "Инженерное дело (схема)",
+    ["Pattern - Alchemy"] = "Алхимия (рецепт)",
+    ["Pattern - Enchanting"] = "Наложение чар (формула)",
+    ["Pattern - Jewelcrafting"] = "Ювелирное дело (эскиз)",
+    ["Pattern - Inscription"] = "Начертание (эскиз)",
+    ["Pattern - Cooking"] = "Кулинария (рецепт)",
+    ["Pattern - First Aid"] = "Первая помощь (учебник)",
+    ["Pattern - Recipe"] = "Рецепт",
+    ["Recipe"] = "Рецепт",
+}
+
+for k, v in pairs(ITEM_TYPES_RU) do
+    L[k] = v
+end
+
+function AP.FormatItemType(typ)
+    if not typ or typ == "" then return "" end
+    if L[typ] and L[typ] ~= typ then return L[typ] end
+    local slot, armor = typ:match("^(.-),%s*(.-)$")
+    if slot and armor then
+        local s = L[slot] or slot
+        local a = L[armor] or armor
+        return s .. ", " .. a
+    end
+    local prof = typ:match("^Pattern %-%s*(.-)$")
+    if prof then
+        local p = L[prof] or prof
+        return (L["Pattern"] or "Рецепт") .. ": " .. p
+    end
+    return typ
 end

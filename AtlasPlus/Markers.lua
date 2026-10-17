@@ -100,9 +100,9 @@ MK.Levels = Levels
 local function PinOnEnter(self)
     local m = self.m
     GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-    GameTooltip:AddLine(m.name, 1, 1, 1)
+    GameTooltip:AddLine(L[m.name] or m.name, 1, 1, 1)
     local fc = FACTION_COLOR[m.fac]
-    local kind = L[TYPE_LABEL[m.type]] .. (((TRAVEL[m.type] or m.town) and m.fac ~= "Neutral") and (" (" .. m.fac .. ")") or "")
+    local kind = L[TYPE_LABEL[m.type]] .. (((TRAVEL[m.type] or m.town) and m.fac ~= "Neutral") and (" (" .. (L[m.fac] or m.fac) .. ")") or "")
     GameTooltip:AddLine(kind, fc[1], fc[2], fc[3])
     if Levels(m) then GameTooltip:AddLine(Levels(m)) end
     if m.note then GameTooltip:AddLine(m.note, 0.8, 0.8, 0.8) end
