@@ -45,6 +45,7 @@ L["Search an instance, a boss or loot..."] = "Поиск подземелья, �
 -- Map header & instance info
 L["Level %s"] = "Уровень %s"
 L["min. %s"] = "мин. %s"
+L["%s players"] = "%s игроков"
 L["%d players"] = "%d игроков"
 L["Entrance map"] = "Карта входа"
 L["Instances"] = "Подземелья"

@@ -52,6 +52,7 @@ L["Search an instance, a boss or loot..."] = "Search an instance, a boss or loot
 -- Map header & instance info
 L["Level %s"] = "Level %s"
 L["min. %s"] = "min. %s"
+L["%s players"] = "%s players"
 L["%d players"] = "%d players"
 L["Entrance map"] = "Entrance map"
 L["Instances"] = "Instances"
@@ -108,7 +109,7 @@ L["Map markers"] = "Map markers"
 
 -- Settings: column 1 (Window)
 L["Open on the map of where you are"] = "Open on the map of where you are"
-L["In a dungeon or raid: its map and wing, with the loot of your difficulty. Outdoors: the world map, on your zone."] = "In a dungeon or raid: its map and wing, with the loot of your difficulty. Outdoors: the world map, on your zone."]
+L["In a dungeon or raid: its map and wing, with the loot of your difficulty. Outdoors: the world map, on your zone."] = "In a dungeon or raid: its map and wing, with the loot of your difficulty. Outdoors: the world map, on your zone."
 L["Open by itself in dungeons and raids"] = "Open by itself in dungeons and raids"
 L["Minimap button"] = "Minimap button"
 L["Lock the window"] = "Lock the window"
