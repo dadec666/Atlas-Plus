@@ -1443,7 +1443,7 @@ function UI:CreateSettings(f)
     credits:SetPoint("BOTTOMLEFT", 20, 16)
     credits:SetPoint("RIGHT", s, "RIGHT", -20, 0)
     credits:SetJustifyH("LEFT")
-    credits:SetText(string.format(L["Atlas Plus %s. Instance maps and legends from Atlas (GPL v2). Zone levels from LibTourist-3.0 (MIT). Loot and drop chances based on 3.3.5a database.\\n/ap - open / close     /ap here - map of where you are     /ap world - world map     /ap search <item>     /ap reset - window position and size"], AP.VERSION))
+    credits:SetText(string.format(L["Atlas Plus %s (Circle Edition) by Saranwrap & dadec666. Instance maps and legends from Atlas (GPL v2). Zone levels from LibTourist-3.0 (MIT). Database aligned with wowroad.info.\\n/ap - open / close     /ap here - map of where you are     /ap world - world map     /ap search <item>     /ap reset - window position and size"], AP.VERSION))
 end
 
 function UI:PlaceSettings()
@@ -1571,7 +1571,7 @@ function UI:CreateInterfacePanel()
     p.name = "Atlas Plus"
     local t = W.Text(p, "GameFontNormalLarge")
     t:SetPoint("TOPLEFT", 16, -16)
-    t:SetText("Atlas Plus |cff888888v" .. AP.VERSION .. "|r")
+    t:SetText("Atlas Plus |cfffc7a2b[Circle Edition]|r |cff888888v" .. AP.VERSION .. "|r")
     local d = W.Text(p, "GameFontHighlight")
     d:SetPoint("TOPLEFT", t, "BOTTOMLEFT", 0, -10)
     d:SetWidth(560)

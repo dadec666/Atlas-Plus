@@ -1,10 +1,13 @@
 ## Interface: 30300
-## Title: Atlas Plus
-## Title-ruRU: Atlas Plus
-## Notes: World map and instance maps in one window: bosses and loot, item search, map markers, no fog of war.
-## Notes-ruRU: Карта мира и подземелий в одном окне: боссы и добыча, поиск предметов, метки на карте, открытие тумана войны.
-## Author: Saranwrap
-## Version: 1.10.1
+## Title: Atlas Plus |cfffc7a2b[Circle Edition]|r
+## Title-ruRU: Atlas Plus |cfffc7a2b[Circle Edition]|r
+## Notes: World map and instance maps in one window: bosses and loot, item search, map markers, no fog of war. Adapted for WoW Circle.
+## Notes-ruRU: Карта мира и подземелий в одном окне: боссы и добыча, поиск предметов, метки на карте, открытие тумана войны. Адаптировано для WoW Circle.
+## Author: Saranwrap, dadec666
+## Version: 1.10.1-circle
+## X-Maintainer: dadec666
+## X-Website: https://github.com/dadec666/Atlas-Plus
+## X-Category: Map, Quests & Leveling
 ## SavedVariables: AtlasPlusDB
 
 Data\Maps.lua

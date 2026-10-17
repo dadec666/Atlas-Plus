@@ -160,7 +160,7 @@ L["Marker size"] = "Marker size"
 L["Town marker size"] = "Town marker size"
 
 -- Settings credits
-L["Atlas Plus %s. Instance maps and legends from Atlas (GPL v2). Zone levels from LibTourist-3.0 (MIT). Loot and drop chances based on 3.3.5a database.\\n/ap - open / close     /ap here - map of where you are     /ap world - world map     /ap search <item>     /ap reset - window position and size"] = "Atlas Plus %s. Instance maps and legends from Atlas (GPL v2). Zone levels from LibTourist-3.0 (MIT). Loot and drop chances based on 3.3.5a database.\\n/ap - open / close     /ap here - map of where you are     /ap world - world map     /ap search <item>     /ap reset - window position and size"
+L["Atlas Plus %s (Circle Edition) by Saranwrap & dadec666. Instance maps and legends from Atlas (GPL v2). Zone levels from LibTourist-3.0 (MIT). Database aligned with wowroad.info.\\n/ap - open / close     /ap here - map of where you are     /ap world - world map     /ap search <item>     /ap reset - window position and size"] = "Atlas Plus %s (Circle Edition) by Saranwrap & dadec666. Instance maps and legends from Atlas (GPL v2). Zone levels from LibTourist-3.0 (MIT). Database aligned with wowroad.info.\\n/ap - open / close     /ap here - map of where you are     /ap world - world map     /ap search <item>     /ap reset - window position and size"
 
 -- Interface options panel
 L["Open Atlas Plus"] = "Open Atlas Plus"

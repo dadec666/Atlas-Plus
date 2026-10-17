@@ -153,7 +153,7 @@ L["Marker size"] = "Размер меток"
 L["Town marker size"] = "Размер городских меток"
 
 -- Settings credits
-L["Atlas Plus %s. Instance maps and legends from Atlas (GPL v2). Zone levels from LibTourist-3.0 (MIT). Loot and drop chances based on 3.3.5a database.\\n/ap - open / close     /ap here - map of where you are     /ap world - world map     /ap search <item>     /ap reset - window position and size"] = "Atlas Plus %s. Карты подземелий и описания из Atlas (GPL v2). Уровни зон из LibTourist-3.0 (MIT). База данных и добыча адаптированы под 3.3.5a.\\n/ap — открыть/закрыть   /ap here — карта вашей локации   /ap world — карта мира   /ap search <текст>   /ap reset — сброс окна"
+L["Atlas Plus %s (Circle Edition) by Saranwrap & dadec666. Instance maps and legends from Atlas (GPL v2). Zone levels from LibTourist-3.0 (MIT). Database aligned with wowroad.info.\\n/ap - open / close     /ap here - map of where you are     /ap world - world map     /ap search <item>     /ap reset - window position and size"] = "Atlas Plus %s [Circle Edition] (авторы: Saranwrap, dadec666). Карты подземелий и описания из Atlas (GPL v2). Уровни зон из LibTourist-3.0 (MIT). База данных согласована с wowroad.info.\\n/ap — открыть/закрыть   /ap here — карта вашей локации   /ap world — карта мира   /ap search <текст>   /ap reset — сброс окна"
 
 -- Interface options panel
 L["Open Atlas Plus"] = "Открыть Atlas Plus"

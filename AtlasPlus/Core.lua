@@ -1,6 +1,6 @@
 --[[
     Atlas Plus - core: saved settings, auto-select, slash commands, events
-    Author: Saranwrap
+    Authors: Saranwrap, dadec666
 
     Instance maps and their legends come from Atlas (GPL v2, Dan Gilbert and contributors).
     Loot and drop chances based on standard 3.3.5a WotLK database (wowroad.info).
@@ -9,7 +9,7 @@
 local ADDON_NAME = ...
 AtlasPlus = AtlasPlus or {}
 local AP = AtlasPlus
-AP.VERSION = "1.10.1"
+AP.VERSION = "1.10.1-circle"
 AP.MEDIA = "Interface\\AddOns\\" .. ADDON_NAME .. "\\"
 AP.MAPS = AP.MEDIA .. "Images\\Maps\\"
 AP.ACCENT = "|cfffc7a2b"
