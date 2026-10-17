@@ -125,13 +125,87 @@ local function StripColor(s)
     return (s or ""):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
 end
 
+local function TranslateZone(z)
+    if not z or z == "" then return "" end
+    if L[z] and L[z] ~= z then return L[z] end
+    local z1, z2 = z:match("^(.-)%s*/%s*(.+)$")
+    if z1 and z2 then
+        return (L[z1] or z1) .. " / " .. (L[z2] or z2)
+    end
+    return z
+end
+
+local function TranslateLegendText(body)
+    if not body or body == "" then return "" end
+    if L[body] and L[body] ~= body then return L[body] end
+
+    local rep = body:match("^Reputation:%s*(.+)$")
+    if rep then
+        return (L["Reputation: "] or "Reputation: ") .. (L[rep] or rep)
+    end
+    local keyName = body:match("^Key:%s*(.+)$")
+    if keyName then
+        return (L["Key: "] or "Key: ") .. (L[keyName] or keyName)
+    end
+    local inst, zone = body:match("^(.-),%s*(.+)$")
+    if inst and zone then
+        return (L[inst] or inst) .. ", " .. TranslateZone(zone)
+    end
+    local base, tag = body:match("^(.-)%s*(%b())$")
+    if base and tag then
+        local locBase = L[base] or base
+        local inner = tag:sub(2, -2)
+        local t1, t2 = inner:match("^(.-),%s*(.+)$")
+        local locTag
+        if t1 and t2 then
+            locTag = (L[t1] or t1) .. ", " .. (L[t2] or t2)
+        else
+            locTag = L[inner] or inner
+        end
+        return locBase .. " (" .. locTag .. ")"
+    end
+    return L[body] or body
+end
+
+local function FormatLegend(raw)
+    if not raw or raw == "" then return "" end
+    if L[raw] and L[raw] ~= raw then return L[raw] end
+
+    local color, text = raw:match("^(|c%x%x%x%x%x%x%x%x)(.*)$")
+    color = color or ""
+    text = text or raw
+
+    local hasReset = false
+    if text:sub(-2) == "|r" then
+        text = text:sub(1, -3)
+        hasReset = true
+    end
+
+    local prefix, body = text:match("^([%w%d'%s%-]+%)%s*)(.*)$")
+    if not prefix then
+        prefix, body = text:match("^(%s+)(.*)$")
+    end
+    prefix = prefix or ""
+    body = body or text
+
+    local translatedBody = TranslateLegendText(body)
+
+    local out = prefix .. translatedBody
+    if color ~= "" then
+        out = color .. out .. "|r"
+    elseif hasReset then
+        out = out .. "|r"
+    end
+    return out
+end
+
 local function LineTitle(key, line)
     if line == "trash" then return L["Trash mobs"] end
     local m = AtlasPlus_Maps and AtlasPlus_Maps[key]
     local l = m and m.lines and m.lines[line]
     local t = strtrim(StripColor(l and l[1] or ""))
-    t = t:gsub("^%w+'?%)%s*", "")
-    return L[t] or t
+    t = t:gsub("^[%w%d'%s%-]+%)%s*", "")
+    return TranslateLegendText(t)
 end
 
 ---------------------------------------------------------------------------
@@ -1033,7 +1107,7 @@ function UI:RefreshRows()
                 row.right:SetText("")
                 row.hl:Show()
             elseif d.kind == "legend" then
-                row.left:SetText(d.text or "")
+                row.left:SetText(FormatLegend(d.text))
                 row.right:SetText(d.loot and (AP.ACCENT .. L["loot >"] .. "|r") or "")
                 local clickable = d.loot or (d.type == 1 and d.id and AP.byArea[d.id])
                 if clickable then row.hl:Show() else row.hl:Hide() end
@@ -1137,7 +1211,7 @@ function UI:OnRowEnter(row)
         if d.type == 3 and d.id then
             GameTooltip:SetHyperlink("item:" .. d.id)
         else
-            GameTooltip:AddLine(strtrim(StripColor(d.text)), 1, 1, 1)
+            GameTooltip:AddLine(strtrim(StripColor(FormatLegend(d.text))), 1, 1, 1)
             if d.loot then GameTooltip:AddLine(L["Click: see its loot"], 0.6, 0.6, 0.6)
             elseif d.type == 1 and d.id and AP.byArea[d.id] then GameTooltip:AddLine(L["Click: open this map"], 0.6, 0.6, 0.6) end
         end
@@ -1252,7 +1326,7 @@ function UI:Search(text, fromBox)
             local hit = strlower(m.name or ""):find(text, 1, true) or strlower(m.full or ""):find(text, 1, true)
             for a in acr:gmatch("[^,%s]+") do if a == text or (text:len() >= 3 and a:find(text, 1, true)) then hit = true end end
             if hit then
-                places[#places + 1] = { kind = "place", key = key, text = m.name,
+                places[#places + 1] = { kind = "place", key = key, text = L[m.name] or m.name,
                     where = (m.acr and (m.acr .. "  ") or "") .. "|cff888888" .. (m.cat or "") .. "|r" }
             end
         end
@@ -1368,7 +1442,7 @@ function UI:CreateSettings(f)
     end)
     local bt = W.Text(bar, "GameFontNormal")
     bt:SetPoint("LEFT", 10, 0)
-    bt:SetText("|cffffffffAtlas Plus|r  " .. AP.ACCENT .. L["Settings"] .. "|r")
+    bt:SetText("|cffffffffAtlas Plus|r  " .. AP.ACCENT .. "Settings|r")
     local bx = W.Button(bar, "X", 24, 20)
     bx:SetPoint("RIGHT", -4, 0)
     bx:SetScript("OnClick", function() win:Hide() end)
