@@ -57,11 +57,11 @@ function WV.ZoneLines(z)
             local iz = AtlasPlus_Zones[iname]
             local ir = iz and Range(iz)
             local gs = AP:GroupSize(iname)
-            local size = gs and ("  |cffaaaaaa" .. gs .. (GetLocale() == "ruRU" and " чел.|r" or "-man|r")) or ""
+            local size = gs and ("  |cffaaaaaa" .. gs .. L["-man"] .. "|r") or ""
             lines[#lines + 1] = (iz and LevelColor(iz[1], iz[2]) or "|cffffffff") .. iname .. (ir and ("  " .. ir) or "") .. "|r" .. size
         end
     end
-    if z and z[7] and z[7] > 0 then lines[#lines + 1] = (GetLocale() == "ruRU" and ("|cff88ccffРыбная ловля " .. z[7] .. "|r") or ("|cff88ccffFishing " .. z[7] .. "|r")) end
+    if z and z[7] and z[7] > 0 then lines[#lines + 1] = "|cff88ccff" .. string.format(L["Fishing %d"], z[7]) .. "|r" end
     return lines
 end
 
@@ -133,7 +133,6 @@ function WV:Create(parent, width)
     bg:SetAllPoints()
     bg:SetTexture(0, 0, 0, 1)
     self.holder = holder
-
     -- text above the game's map (same strata, higher level)
     local layer = CreateFrame("Frame", nil, panel)
     layer:SetAllPoints(holder)
@@ -204,7 +203,7 @@ function WV:Refresh()
     local z = name and AtlasPlus_Zones[name]
     if z and AP.db.zoneBlock then
         local r = Range(z)
-        self.info:SetText(name .. (r and ("   " .. LevelColor(z[1], z[2]) .. "Level " .. r .. "|r") or ""))
+        self.info:SetText(name .. (r and ("   " .. LevelColor(z[1], z[2]) .. string.format(L["Level %s"], r) .. "|r") or ""))
         self.insts:SetText(table.concat(WV.ZoneLines(z), "\n"))
     else
         self.info:SetText("")

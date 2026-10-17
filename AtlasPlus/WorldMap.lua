@@ -378,14 +378,18 @@ local function ZoneText(name)
     local WV = AP.WorldView
     local lines = {}
     local r = WV.Range(z)
-    if r then lines[1] = WV.LevelColor(z[1], z[2]) .. "Level " .. r .. "|r" end
+    if r then lines[1] = WV.LevelColor(z[1], z[2]) .. string.format(L["Level %s"], r) .. "|r" end
     for _, l in ipairs(WV.ZoneLines(z)) do lines[#lines + 1] = l end
     return table.concat(lines, "\n")
 end
 
 local lastZone, lastTarget
-local function OnMapUpdate()
+local updateAcc = 0
+local function OnMapUpdate(self, elapsed)
     if not WM.ready then return end
+    updateAcc = updateAcc + (elapsed or 0)
+    if updateAcc < 0.05 then return end
+    updateAcc = 0
     local target = WM.embedded and WM.infoEmbedded or WM.info
     local other = WM.embedded and WM.info or WM.infoEmbedded
     if target ~= lastTarget then other:SetText(""); lastTarget = target; lastZone = nil end
