@@ -470,6 +470,58 @@ function WM:Update()
 end
 
 ---------------------------------------------------------------------------
+-- Quest areas in combat: the game's quest area frame (WorldMapBlobFrame) is protected, and
+-- once an addon has moved the map the game's own Show / Hide / SetScale calls on it are
+-- blocked in combat (ADDON_ACTION_BLOCKED). In combat it is set aside and those calls only
+-- remember what the game wanted; after combat it goes back and shows the quest area again.
+---------------------------------------------------------------------------
+local blobVisible, blobScale
+local function BlobShow() blobVisible = true end
+local function BlobHide() blobVisible = nil end
+local function BlobScale(_, s) blobScale = s end
+
+function WM:BlobCombat(on)
+    local blob = WorldMapBlobFrame
+    if not blob then return end
+    if on then
+        if self.blobAside then return end
+        self.blobAside = true
+        blobVisible, blobScale = blob:IsShown(), nil
+        self.blobHome = { parent = blob:GetParent(), points = {} }
+        for i = 1, blob:GetNumPoints() do self.blobHome.points[i] = { blob:GetPoint(i) } end
+        blob:SetParent(nil)
+        blob:ClearAllPoints()
+        blob:SetPoint("TOP", UIParent, "BOTTOM")       -- off the screen, the game's sums still work
+        blob:Hide()
+        blob.Show, blob.Hide, blob.SetScale = BlobShow, BlobHide, BlobScale
+    else
+        if not self.blobAside then return end
+        self.blobAside = nil
+        blob.Show, blob.Hide, blob.SetScale = nil, nil, nil
+        local home = self.blobHome or {}
+        blob:SetParent(home.parent or WorldMapFrame)
+        blob:ClearAllPoints()
+        if home.points and #home.points > 0 then
+            for _, p in ipairs(home.points) do blob:SetPoint(unpack(p)) end
+        else
+            blob:SetPoint("TOPLEFT", WorldMapDetailFrame)
+        end
+        if blobScale then blob:SetScale(blobScale) end
+        blob.xRatio = nil
+        if blobVisible then
+            blob:Show()
+            if WorldMapBlobFrame_CalculateHitTranslations then pcall(WorldMapBlobFrame_CalculateHitTranslations) end
+            local q = WORLDMAP_SETTINGS and WORLDMAP_SETTINGS.selectedQuest
+            if q and blob.DrawQuestBlob then
+                pcall(blob.DrawQuestBlob, blob, WORLDMAP_SETTINGS.selectedQuestId, false)
+                if not q.completed then pcall(blob.DrawQuestBlob, blob, WORLDMAP_SETTINGS.selectedQuestId, true) end
+            end
+        end
+        blobVisible, blobScale = nil, nil
+    end
+end
+
+---------------------------------------------------------------------------
 -- Setup
 ---------------------------------------------------------------------------
 function WM:Init()
@@ -533,7 +585,9 @@ function WM:Init()
                 WM:Release()
                 WM:CombatNotice(true)
             end
+            WM:BlobCombat(true)
         else
+            WM:BlobCombat(false)
             WM:CombatNotice(false)
             local UI = AP.UI
             if UI.frame:IsShown() and UI.page == "world" then WM:Attach() end
