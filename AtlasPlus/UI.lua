@@ -280,7 +280,7 @@ function UI:CreateGrip(f)
         W.Size(e, 2, 2)
         e:SetPoint("BOTTOMRIGHT", -2, (i * 4) + 2)
     end
-    g:SetScript("OnEnter", function(self) W.Tip(self, "Resize", "Drag to make the window bigger or smaller.") end)
+    g:SetScript("OnEnter", function(self) W.Tip(self, L["Resize"], L["Drag to make the window bigger or smaller."]) end)
     g:SetScript("OnLeave", function() GameTooltip:Hide() end)
     g:SetScript("OnMouseDown", function(self)
         UI:SavePosition()
@@ -407,7 +407,7 @@ function UI:CreateList(f)
             local m = AtlasPlus_Maps[e.key]
             GameTooltip:SetOwner(r, "ANCHOR_RIGHT")
             GameTooltip:AddLine(m.full or m.name, 1, 1, 1)
-            if m.lvl then GameTooltip:AddLine("Level " .. m.lvl .. (m.players and ("  -  " .. m.players .. " players") or ""), 0.8, 0.8, 0.8) end
+            if m.lvl then GameTooltip:AddLine(string.format(L["Level %s"], m.lvl) .. (m.players and ("  -  " .. string.format(L["%d players"], m.players)) or ""), 0.8, 0.8, 0.8) end
             if m.loc then GameTooltip:AddLine(m.loc, 0.8, 0.8, 0.8) end
             GameTooltip:Show()
         end)
@@ -630,7 +630,7 @@ function UI:CreateRight(f)
     loc:SetPoint("RIGHT", panel, "RIGHT", -190, 0)
     loc:SetJustifyH("LEFT")
     self.hLoc = loc
-    local ent = W.Button(panel, "Entrance", 90, 18)
+    local ent = W.Button(panel, L["Entrance"], 90, 18)
     ent:SetPoint("TOPRIGHT", panel, "TOPRIGHT", 0, -34)
     ent:SetScript("OnClick", function(b) UI:GoEntrance(b) end)
     self.entBtn = ent
@@ -652,7 +652,7 @@ function UI:CreateRight(f)
         b:SetScript("OnClick", function(btn) UI:SetMode(btn.mode) end)
         self.modeBtns[i] = b
     end
-    local back = W.Button(panel, "< Back", 64, 20)
+    local back = W.Button(panel, L["< Back"], 64, 20)
     back:SetPoint("TOPRIGHT", panel, "TOPRIGHT", 0, -56)
     back:SetScript("OnClick", function() UI:Back() end)
     self.backBtn = back
@@ -717,8 +717,8 @@ function UI:SelectMap(key, keepView)
             n = n + 1
             for _, str in pairs(modes) do for _ in str:gmatch("[^,]+") do items = items + 1 end end
         end
-        local nLists = (GetLocale() == "ruRU" and (n .. " " .. AP.GetPluralRu(n, "список", "списка", "списков"))) or (n .. " list" .. (n == 1 and "" or "s"))
-        local nItems = (GetLocale() == "ruRU" and (items .. " " .. AP.GetPluralRu(items, "предмет", "предмета", "предметов"))) or (items .. " item" .. (items == 1 and "" or "s"))
+        local nLists = AP.FormatLists(n)
+        local nItems = AP.FormatItems(items)
         info.count:SetText(nLists .. ", " .. nItems)
         info:Show()
     else
@@ -980,24 +980,12 @@ function UI:RefreshRight()
         local f = self.found or { places = 0, bosses = 0, items = #(self.results or {}) }
         local parts = {}
         if f.places > 0 then
-            if GetLocale() == "ruRU" then
-                parts[#parts + 1] = f.places .. " " .. AP.GetPluralRu(f.places, "подземелье", "подземелья", "подземелий")
-            else
-                parts[#parts + 1] = f.places .. " instance" .. (f.places == 1 and "" or "s")
-            end
+            parts[#parts + 1] = AP.FormatInstances(f.places)
         end
         if f.bosses > 0 then
-            if GetLocale() == "ruRU" then
-                parts[#parts + 1] = f.bosses .. " " .. AP.GetPluralRu(f.bosses, "босс", "босса", "боссов")
-            else
-                parts[#parts + 1] = f.bosses .. " boss" .. (f.bosses == 1 and "" or "es")
-            end
+            parts[#parts + 1] = AP.FormatBosses(f.bosses)
         end
-        if GetLocale() == "ruRU" then
-            parts[#parts + 1] = f.items .. " " .. AP.GetPluralRu(f.items, "предмет", "предмета", "предметов") .. (self.resultsCapped and " (первые 200)" or "")
-        else
-            parts[#parts + 1] = f.items .. " item" .. (f.items == 1 and "" or "s") .. (self.resultsCapped and " (first 200)" or "")
-        end
+        parts[#parts + 1] = AP.FormatItems(f.items) .. (self.resultsCapped and L[" (first 200)"] or "")
         self.sub:SetText(table.concat(parts, ", ") .. L[" found"])
     else
         local hasLoot = AtlasPlus_Loot[self.mapKey] ~= nil
@@ -1145,8 +1133,8 @@ function UI:OnRowEnter(row)
             GameTooltip:SetHyperlink("item:" .. d.id)
         else
             GameTooltip:AddLine(strtrim(StripColor(d.text)), 1, 1, 1)
-            if d.loot then GameTooltip:AddLine("Click: see its loot", 0.6, 0.6, 0.6)
-            elseif d.type == 1 and d.id and AP.byArea[d.id] then GameTooltip:AddLine("Click: open this map", 0.6, 0.6, 0.6) end
+            if d.loot then GameTooltip:AddLine(L["Click: see its loot"], 0.6, 0.6, 0.6)
+            elseif d.type == 1 and d.id and AP.byArea[d.id] then GameTooltip:AddLine(L["Click: open this map"], 0.6, 0.6, 0.6) end
         end
         GameTooltip:Show()
         return
@@ -1171,17 +1159,17 @@ function UI:OnRowEnter(row)
             local parts, rating = CostParts(d)
             if #parts == 0 then GameTooltip:AddLine(L["Cost: free"], 1, 0.82, 0) end
             for i, p in ipairs(parts) do
-                GameTooltip:AddLine((i == 1 and "Cost: " or "          ") .. p[1] .. "  " .. p[2], 1, 0.82, 0)
+                GameTooltip:AddLine((i == 1 and L["Cost: "] or "          ") .. p[1] .. "  " .. p[2], 1, 0.82, 0)
             end
-            if rating and rating > 0 then GameTooltip:AddLine("Requires a personal arena rating of " .. rating, 1, 0.3, 0.3) end
-            GameTooltip:AddLine("Sold by: " .. LineTitle(self.mapKey, self.lootLine), 0.8, 0.8, 0.8, true)
+            if rating and rating > 0 then GameTooltip:AddLine(string.format(L["Requires a personal arena rating of %d"], rating), 1, 0.3, 0.3) end
+            GameTooltip:AddLine(string.format(L["Sold by: %s"], LineTitle(self.mapKey, self.lootLine)), 0.8, 0.8, 0.8, true)
         elseif d.quest then
-            GameTooltip:AddLine("Quest reward: " .. (AtlasPlus_Quests[d.quest] or ("quest " .. d.quest)), 1, 0.82, 0, true)
+            GameTooltip:AddLine(string.format(L["Quest reward: %s"], (AtlasPlus_Quests[d.quest] or (L["Quest"] .. " " .. d.quest))), 1, 0.82, 0, true)
         else
-            GameTooltip:AddLine("Drop chance: " .. d.pct .. "%" .. (d.count and ("  (" .. d.count .. " at once)") or "") .. (d.hm and "  (hard mode)" or ""), 1, 0.82, 0)
+            GameTooltip:AddLine(string.format(L["Drop chance: %s%%"], d.pct) .. (d.count and ("  " .. string.format(L["(%d at once)"], d.count)) or "") .. (d.hm and ("  " .. L["(hard mode)"]) or ""), 1, 0.82, 0)
         end
         if d.lv then
-            GameTooltip:AddLine("World drop: creatures of level " .. d.lv:gsub("%-", " - ") .. " can drop it, in any zone, dungeon or raid of that level.", 0.8, 0.8, 0.8, true)
+            GameTooltip:AddLine(string.format(L["World drop: creatures of level %s can drop this."], d.lv:gsub("%-", " - ")), 0.8, 0.8, 0.8, true)
         end
 
     else
@@ -1189,9 +1177,9 @@ function UI:OnRowEnter(row)
         if d.modes and not d.nomap then GameTooltip:AddLine(L["Drops in: "] .. d.modes, 0.8, 0.8, 0.8) end
     end
     local fac = select(6, ItemInfo(d.id))
-    if fac == "A" then GameTooltip:AddLine("Alliance only", 0.29, 0.62, 1)
-    elseif fac == "H" then GameTooltip:AddLine("Horde only", 1, 0.29, 0.29) end
-    GameTooltip:AddLine("Shift-click: link   Ctrl-click: try on", 0.6, 0.6, 0.6)
+    if fac == "A" then GameTooltip:AddLine(L["Alliance only"], 0.29, 0.62, 1)
+    elseif fac == "H" then GameTooltip:AddLine(L["Horde only"], 1, 0.29, 0.29) end
+    GameTooltip:AddLine(L["Shift-click: link   Ctrl-click: try on"], 0.6, 0.6, 0.6)
     GameTooltip:Show()
 end
 
@@ -1408,7 +1396,7 @@ function UI:CreateSettings(f)
         end)
     end)
     g:SetScript("OnMouseUp", function(self) self:SetScript("OnUpdate", nil) end)
-    g:SetScript("OnHide", function(self) self:SetScript("OnUpdate", nil) end)
+    g:SetScript("OnHide", function(self) if self:GetScript("OnUpdate") then self:SetScript("OnUpdate", nil) end end)
 
     local s = CreateFrame("Frame", nil, win)
     s:SetPoint("TOPLEFT", 0, -30)
@@ -1583,9 +1571,9 @@ function UI:CreateMinimapButton()
     b:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_LEFT")
         GameTooltip:AddLine("Atlas Plus")
-        GameTooltip:AddLine("Left-click: open / close", 0.8, 0.8, 0.8)
+        GameTooltip:AddLine(L["Left-click: open / close"], 0.8, 0.8, 0.8)
         GameTooltip:AddLine(L["Right-click: settings"], 0.8, 0.8, 0.8)
-        GameTooltip:AddLine("Drag: move", 0.8, 0.8, 0.8)
+        GameTooltip:AddLine(L["Drag: move"], 0.8, 0.8, 0.8)
         GameTooltip:Show()
     end)
     b:SetScript("OnLeave", function() GameTooltip:Hide() end)
