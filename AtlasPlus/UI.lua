@@ -59,16 +59,16 @@ end
 local function CostParts(d)
     local parts = {}
     if d.copper then
-        if d.copper > 0 then parts[1] = { Coins(d.copper), "Gold" } end
+        if d.copper > 0 then parts[1] = { Coins(d.copper), L["Gold"] } end
         return parts
     end
     local c = d.cost and AtlasPlus_Costs[d.cost]
     if not c then return parts end
     if c[1] > 0 then
         local fac = UnitFactionGroup("player") or "Alliance"
-        parts[#parts + 1] = { c[1] .. "|TInterface\\PVPFrame\\PVP-Currency-" .. fac .. ":0|t", "Honor Points" }
+        parts[#parts + 1] = { c[1] .. "|TInterface\\PVPFrame\\PVP-Currency-" .. fac .. ":0|t", L["Honor Points"] }
     end
-    if c[2] > 0 then parts[#parts + 1] = { c[2] .. "|TInterface\\PVPFrame\\PVP-ArenaPoints-Icon:0|t", "Arena Points" } end
+    if c[2] > 0 then parts[#parts + 1] = { c[2] .. "|TInterface\\PVPFrame\\PVP-ArenaPoints-Icon:0|t", L["Arena Points"] } end
     for i = 4, #c, 2 do
         local name = AtlasPlus_Items[c[i]] and AtlasPlus_Items[c[i]][1] or GetItemInfo(c[i]) or ("item " .. c[i])
         parts[#parts + 1] = { c[i + 1] .. "|T" .. (GetItemIcon(c[i]) or "Interface\\Icons\\INV_Misc_QuestionMark") .. ":0|t", name, c[i + 1] }
@@ -764,12 +764,29 @@ function UI:BackToWorld()
     self:ShowWorld()
 end
 
+function UI:GoEntrance(btn)
+    local A = AtlasPlus_Assoc
+    local key = self.mapKey
+    local ents = A.instToEnt[key]
+    if ents and ents[1] then self:SelectMap(ents[1]) return end
+    -- entrance map: back to an instance of it
+    local insts = A.entToInst[key]
+    if insts then
+        local menu = { { text = L["Instances"], isTitle = true, notCheckable = true } }
+        for _, k in ipairs(insts) do
+            local m = AtlasPlus_Maps[k]
+            if m then menu[#menu + 1] = { text = m.name, notCheckable = true, func = function() UI:SelectMap(k) end } end
+        end
+        W.ShowMenu(menu, btn)
+    end
+end
+
 function UI:RefreshHeader()
-    local m = AtlasPlus_Maps[self.mapKey]
+    local key = self.mapKey
+    local m = AtlasPlus_Maps[key]
     if not m then return end
     self.hTitle:SetText(m.full or m.name)
     local bits = {}
-    if m.loc then bits[#bits + 1] = m.loc end
     if m.lvl then bits[#bits + 1] = string.format(L["Level %s"], m.lvl) end
     if m.minlvl then bits[#bits + 1] = string.format(L["min. %s"], m.minlvl) end
     if m.players then bits[#bits + 1] = string.format(L["%d players"], tonumber(m.players) or m.players) end
@@ -1145,7 +1162,7 @@ function UI:OnRowEnter(row)
         end
         if d.where then
             GameTooltip:AddLine(d.where, 1, 1, 1)
-            if d.modes and not d.nomap then GameTooltip:AddLine("Drops in: " .. d.modes, 0.8, 0.8, 0.8) end
+            if d.modes and not d.nomap then GameTooltip:AddLine(L["Drops in: "] .. d.modes, 0.8, 0.8, 0.8) end
         end
         local fac = AtlasPlus_Items[d.id] and AtlasPlus_Items[d.id][5]
         if fac == "A" then GameTooltip:AddLine(L["Alliance only"], 0.29, 0.62, 1) elseif fac == "H" then GameTooltip:AddLine(L["Horde only"], 1, 0.29, 0.29) end
@@ -1509,9 +1526,9 @@ function UI:CreateMinimapButton()
     b:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_LEFT")
         GameTooltip:AddLine("Atlas Plus", 1, 1, 1)
-        GameTooltip:AddLine("Click: open / close", 0.8, 0.8, 0.8)
-        GameTooltip:AddLine("Right-click: settings", 0.8, 0.8, 0.8)
-        GameTooltip:AddLine("Drag: move button", 0.6, 0.6, 0.6)
+        GameTooltip:AddLine(L["Click: open / close"], 0.8, 0.8, 0.8)
+        GameTooltip:AddLine(L["Right-click: settings"], 0.8, 0.8, 0.8)
+        GameTooltip:AddLine(L["Drag: move button"], 0.6, 0.6, 0.6)
         GameTooltip:Show()
     end)
     b:SetScript("OnLeave", function() GameTooltip:Hide() end)
