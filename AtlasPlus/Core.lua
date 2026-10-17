@@ -134,13 +134,14 @@ function AP:FindMapForLocation()
     local inInstance = IsInInstance()
 
     -- multi-map instances (Ulduar, Icecrown Citadel, Karazhan, Dire Maul...): pick the wing by subzone
-    if A.defaults[zone] then
-        local key = A.subzones[sub]
-        if key and AtlasPlus_Maps[key] and A.zoneOf[key] == zone then return key end
+    local defaultWing = A.defaults[zone] or (AP.L and A.defaults[AP.L[zone]])
+    if defaultWing then
+        local key = A.subzones[sub] or (AP.L and A.subzones[AP.L[sub]])
+        if key and AtlasPlus_Maps[key] and (A.zoneOf[key] == zone or (AP.L and AP.L[A.zoneOf[key]] == zone)) then return key end
         -- staying in the same instance: keep the wing already shown
         local cur = self.db.lastMap
-        if cur and A.zoneOf[cur] == zone then return cur end
-        return A.defaults[zone]
+        if cur and (A.zoneOf[cur] == zone or (AP.L and AP.L[A.zoneOf[cur]] == zone)) then return cur end
+        return defaultWing
     end
 
     if inInstance then
@@ -148,7 +149,10 @@ function AP:FindMapForLocation()
         for key, m in pairs(AtlasPlus_Maps) do
             if m.cat ~= "Entrances" and m.cat ~= "Dungeon Locations" and not m.nomap then
                 local full = (m.full or ""):gsub("%s*%b[]", ""):gsub("%s*%b()", "")
-                if full == zone or ZoneShortName(m) == zone then return key end
+                local short = ZoneShortName(m)
+                if full == zone or short == zone or (AP.L and (AP.L[full] == zone or AP.L[short] == zone or AP.L[m.name] == zone)) then
+                    return key
+                end
             end
         end
     end
@@ -161,11 +165,15 @@ function AP:KeyForZoneName(zone)
     local A = AtlasPlus_Assoc
     zone = A.substitutions[zone] or zone
     if A.defaults[zone] then return A.defaults[zone] end
+    if AP.L and A.defaults[AP.L[zone]] then return A.defaults[AP.L[zone]] end
     if ZONE_FIX[zone] then return ZONE_FIX[zone] end
     for key, m in pairs(AtlasPlus_Maps) do
         if m.cat ~= "Entrances" and m.cat ~= "Dungeon Locations" and not m.nomap then
             local full = (m.full or ""):gsub("%s*%b[]", ""):gsub("%s*%b()", "")
-            if full == zone or ZoneShortName(m) == zone then return key end
+            local short = ZoneShortName(m)
+            if full == zone or short == zone or (AP.L and (AP.L[full] == zone or AP.L[short] == zone or AP.L[m.name] == zone)) then
+                return key
+            end
         end
     end
 end
@@ -233,101 +241,105 @@ end
 ---------------------------------------------------------------------------
 -- Dungeon & Raid Game Map IDs (Classic & TBC WDM-patch + Native WotLK)
 ---------------------------------------------------------------------------
-AP.GAME_MAP_IDS = {
+AP.GAME_MAP_IDS = AP.GAME_MAP_IDS or {}
+local GAME_MAP_IDS_DEF = {
     -- Classic Dungeons (WDM-patch: 680..765)
-    ["RagefireChasm"] = 680, ["Ragefire Chasm"] = 680, ["Огненная Пропасть"] = 680,
-    ["ZulFarrak"] = 686, ["Zul'Farrak"] = 686, ["Зул'Фаррак"] = 686,
-    ["SunkenTemple"] = 687, ["The Temple of Atal'Hakkar"] = 687, ["Затонувший храм"] = 687, ["Храм Атал'Хаккара"] = 687,
-    ["BlackfathomDeeps"] = 688, ["Blackfathom Deeps"] = 688, ["Непроглядная Пучина"] = 688,
-    ["TheStockade"] = 690, ["The Stockade"] = 690, ["Тюрьма"] = 690,
-    ["Gnomeregan"] = 691, ["Гномреган"] = 691,
-    ["Uldaman"] = 692, ["Ульдаман"] = 692,
-    ["DireMaulEast"] = 699, ["DireMaulNorth"] = 699, ["DireMaulWest"] = 699, ["Dire Maul"] = 699, ["Забытый Город"] = 699,
-    ["BlackrockDepths"] = 704, ["Blackrock Depths"] = 704, ["Глубины Черной горы"] = 704,
-    ["BlackrockSpireLower"] = 721, ["BlackrockSpireUpper"] = 721, ["Blackrock Spire"] = 721, ["Пик Черной горы"] = 721,
-    ["WailingCaverns"] = 749, ["Wailing Caverns"] = 749, ["Пещеры Стенаний"] = 749,
-    ["Maraudon"] = 750, ["Мародон"] = 750,
-    ["TheDeadmines"] = 756, ["Deadmines"] = 756, ["The Deadmines"] = 756, ["Мертвые копи"] = 756,
-    ["RazorfenDowns"] = 760, ["Razorfen Downs"] = 760, ["Курганы Иглошкурых"] = 760,
-    ["RazorfenKraul"] = 761, ["Razorfen Kraul"] = 761, ["Лабиринты Иглошкурых"] = 761,
+    ["RagefireChasm"] = 680, ["Ragefire Chasm"] = 680,
+    ["ZulFarrak"] = 686, ["Zul'Farrak"] = 686,
+    ["SunkenTemple"] = 687, ["The Temple of Atal'Hakkar"] = 687,
+    ["BlackfathomDeeps"] = 688, ["Blackfathom Deeps"] = 688,
+    ["TheStockade"] = 690, ["The Stockade"] = 690,
+    ["Gnomeregan"] = 691,
+    ["Uldaman"] = 692,
+    ["DireMaulEast"] = 699, ["DireMaulNorth"] = 699, ["DireMaulWest"] = 699, ["Dire Maul"] = 699,
+    ["BlackrockDepths"] = 704, ["Blackrock Depths"] = 704,
+    ["BlackrockSpireLower"] = 721, ["BlackrockSpireUpper"] = 721, ["Blackrock Spire"] = 721,
+    ["WailingCaverns"] = 749, ["Wailing Caverns"] = 749,
+    ["Maraudon"] = 750,
+    ["TheDeadmines"] = 756, ["Deadmines"] = 756, ["The Deadmines"] = 756,
+    ["RazorfenDowns"] = 760, ["Razorfen Downs"] = 760,
+    ["RazorfenKraul"] = 761, ["Razorfen Kraul"] = 761,
     ["ScarletMonastery"] = 762, ["ScarletMonasteryGraveyard"] = 762, ["ScarletMonasteryLibrary"] = 762,
-    ["ScarletMonasteryArmory"] = 762, ["ScarletMonasteryCathedral"] = 762, ["Монастырь Алого ордена"] = 762,
-    ["Scholomance"] = 763, ["Некроситет"] = 763,
-    ["ShadowfangKeep"] = 764, ["Shadowfang Keep"] = 764, ["Крепость Темного Клыка"] = 764,
-    ["Stratholme"] = 765, ["Стратхольм"] = 765,
+    ["ScarletMonasteryArmory"] = 762, ["ScarletMonasteryCathedral"] = 762,
+    ["Scholomance"] = 763,
+    ["ShadowfangKeep"] = 764, ["Shadowfang Keep"] = 764,
+    ["Stratholme"] = 765,
 
     -- Classic Raids (WDM-patch: 696..766)
-    ["MoltenCore"] = 696, ["Molten Core"] = 696, ["Огненные Недра"] = 696,
-    ["ZulGurub"] = 697, ["Zul'Gurub"] = 697, ["Зул'Гуруб"] = 697,
-    ["RuinsOfAhnQiraj"] = 717, ["Ruins of Ahn'Qiraj"] = 717, ["Руины Ан'Киража"] = 717,
-    ["BlackwingLair"] = 755, ["Blackwing Lair"] = 755, ["Логово Крыла Тьмы"] = 755,
-    ["TempleOfAhnQiraj"] = 766, ["Ahn'Qiraj"] = 766, ["Ан'Кираж"] = 766,
+    ["MoltenCore"] = 696, ["Molten Core"] = 696,
+    ["ZulGurub"] = 697, ["Zul'Gurub"] = 697,
+    ["RuinsOfAhnQiraj"] = 717, ["Ruins of Ahn'Qiraj"] = 717,
+    ["BlackwingLair"] = 755, ["Blackwing Lair"] = 755,
+    ["TempleOfAhnQiraj"] = 766, ["Ahn'Qiraj"] = 766,
 
     -- TBC Dungeons (WDM-patch: 710..798)
-    ["HellfireRamparts"] = 797, ["Hellfire Ramparts"] = 797, ["Бастионы Адского Пламени"] = 797,
-    ["TheBloodFurnace"] = 725, ["The Blood Furnace"] = 725, ["Кузня Крови"] = 725,
-    ["TheShatteredHalls"] = 710, ["The Shattered Halls"] = 710, ["Разрушенные залы"] = 710,
-    ["TheSlavePens"] = 728, ["The Slave Pens"] = 728, ["Узилище"] = 728,
-    ["TheUnderbog"] = 726, ["The Underbog"] = 726, ["Нижетопь"] = 726,
-    ["TheSteamvault"] = 727, ["The Steamvault"] = 727, ["Паровое подземелье"] = 727,
-    ["ManaTombs"] = 732, ["Mana-Tombs"] = 732, ["Гробницы маны"] = 732,
-    ["AuchenaiCrypts"] = 722, ["Auchenai Crypts"] = 722, ["Аукенайские гробницы"] = 722,
-    ["SethekkHalls"] = 723, ["Sethekk Halls"] = 723, ["Сетеккские залы"] = 723,
-    ["ShadowLabyrinth"] = 724, ["Shadow Labyrinth"] = 724, ["Темный лабиринт"] = 724,
-    ["OldHillsbrad"] = 734, ["Old Hillsbrad Foothills"] = 734, ["Старые предгорья Хилсбрада"] = 734,
-    ["TheBlackMorass"] = 733, ["The Black Morass"] = 733, ["Черные топи"] = 733,
-    ["TheBotanica"] = 729, ["The Botanica"] = 729, ["Ботаника"] = 729,
-    ["TheMechanar"] = 730, ["The Mechanar"] = 730, ["Механар"] = 730,
-    ["TheArcatraz"] = 731, ["The Arcatraz"] = 731, ["Аркатрац"] = 731,
-    ["MagistersTerrace"] = 798, ["Magisters' Terrace"] = 798, ["Терраса Магистров"] = 798,
+    ["HellfireRamparts"] = 797, ["Hellfire Ramparts"] = 797,
+    ["TheBloodFurnace"] = 725, ["The Blood Furnace"] = 725,
+    ["TheShatteredHalls"] = 710, ["The Shattered Halls"] = 710,
+    ["TheSlavePens"] = 728, ["The Slave Pens"] = 728,
+    ["TheUnderbog"] = 726, ["The Underbog"] = 726,
+    ["TheSteamvault"] = 727, ["The Steamvault"] = 727,
+    ["ManaTombs"] = 732, ["Mana-Tombs"] = 732,
+    ["AuchenaiCrypts"] = 722, ["Auchenai Crypts"] = 722,
+    ["SethekkHalls"] = 723, ["Sethekk Halls"] = 723,
+    ["ShadowLabyrinth"] = 724, ["Shadow Labyrinth"] = 724,
+    ["OldHillsbrad"] = 734, ["Old Hillsbrad Foothills"] = 734,
+    ["TheBlackMorass"] = 733, ["The Black Morass"] = 733,
+    ["TheBotanica"] = 729, ["The Botanica"] = 729,
+    ["TheMechanar"] = 730, ["The Mechanar"] = 730,
+    ["TheArcatraz"] = 731, ["The Arcatraz"] = 731,
+    ["MagistersTerrace"] = 798, ["Magisters' Terrace"] = 798,
 
     -- TBC Raids (WDM-patch + native: 775..799)
-    ["Karazhan"] = 799, ["Каражан"] = 799,
-    ["GruulsLair"] = 776, ["Gruul's Lair"] = 776, ["Логово Груула"] = 776,
-    ["MagtheridonsLair"] = 779, ["Magtheridon's Lair"] = 779, ["Логово Магтеридона"] = 779,
-    ["SerpentshrineCavern"] = 780, ["Serpentshrine Cavern"] = 780, ["Змеиное святилище"] = 780,
-    ["TheEye"] = 782, ["The Eye"] = 782, ["Tempest Keep"] = 782, ["Крепость Бурь"] = 782, ["Око"] = 782,
-    ["BattleForMountHyjal"] = 775, ["Hyjal Summit"] = 775, ["Битва за гору Хиджал"] = 775, ["Вершина Хиджала"] = 775,
-    ["BlackTemple"] = 796, ["Black Temple"] = 796, ["Черный храм"] = 796,
-    ["SunwellPlateau"] = 789, ["Sunwell Plateau"] = 789, ["Плато Солнечного Колодца"] = 789,
+    ["Karazhan"] = 799,
+    ["GruulsLair"] = 776, ["Gruul's Lair"] = 776,
+    ["MagtheridonsLair"] = 779, ["Magtheridon's Lair"] = 779,
+    ["SerpentshrineCavern"] = 780, ["Serpentshrine Cavern"] = 780,
+    ["TheEye"] = 782, ["The Eye"] = 782, ["Tempest Keep"] = 782,
+    ["BattleForMountHyjal"] = 775, ["Hyjal Summit"] = 775,
+    ["BlackTemple"] = 796, ["Black Temple"] = 796,
+    ["SunwellPlateau"] = 789, ["Sunwell Plateau"] = 789,
 
     -- WotLK Dungeons (Native: 520..603)
-    ["UtgardeKeep"] = 523, ["Utgarde Keep"] = 523, ["Крепость Утгард"] = 523,
-    ["TheNexus"] = 520, ["The Nexus"] = 520, ["Нексус"] = 520,
-    ["AzjolNerub"] = 533, ["Azjol-Nerub"] = 533, ["Азжол-Неруб"] = 533,
-    ["Ahnkahet"] = 522, ["Ahn'kahet: The Old Kingdom"] = 522, ["Ан'кахет: Старое Королевство"] = 522,
-    ["DrakTharonKeep"] = 534, ["Drak'Tharon Keep"] = 534, ["Крепость Драк'Тарон"] = 534,
-    ["TheVioletHold"] = 536, ["The Violet Hold"] = 536, ["Аметистовая крепость"] = 536,
-    ["Gundrak"] = 530, ["Гундрак"] = 530,
-    ["HallsOfStone"] = 526, ["Halls of Stone"] = 526, ["Чертоги Камня"] = 526,
-    ["HallsOfLightning"] = 525, ["Halls of Lightning"] = 525, ["Чертоги Молний"] = 525,
-    ["TheOculus"] = 528, ["The Oculus"] = 528, ["Окулус"] = 528,
-    ["UtgardePinnacle"] = 524, ["Utgarde Pinnacle"] = 524, ["Вершина Утгард"] = 524,
-    ["CullingOfStratholme"] = 521, ["The Culling of Stratholme"] = 521, ["Очищение Стратхольма"] = 521,
-    ["TrialOfTheChampion"] = 542, ["Trial of the Champion"] = 542, ["Испытание чемпиона"] = 542,
-    ["TheForgeOfSouls"] = 601, ["The Forge of Souls"] = 601, ["Кузня Душ"] = 601,
-    ["PitOfSaron"] = 602, ["Pit of Saron"] = 602, ["Яма Сарона"] = 602,
-    ["HallsOfReflection"] = 603, ["Halls of Reflection"] = 603, ["Залы Отражений"] = 603,
+    ["UtgardeKeep"] = 523, ["Utgarde Keep"] = 523,
+    ["TheNexus"] = 520, ["The Nexus"] = 520,
+    ["AzjolNerub"] = 533, ["Azjol-Nerub"] = 533,
+    ["Ahnkahet"] = 522, ["Ahn'kahet: The Old Kingdom"] = 522,
+    ["DrakTharonKeep"] = 534, ["Drak'Tharon Keep"] = 534,
+    ["TheVioletHold"] = 536, ["The Violet Hold"] = 536,
+    ["Gundrak"] = 530,
+    ["HallsOfStone"] = 526, ["Halls of Stone"] = 526,
+    ["HallsOfLightning"] = 525, ["Halls of Lightning"] = 525,
+    ["TheOculus"] = 528, ["The Oculus"] = 528,
+    ["UtgardePinnacle"] = 524, ["Utgarde Pinnacle"] = 524,
+    ["CullingOfStratholme"] = 521, ["The Culling of Stratholme"] = 521,
+    ["TrialOfTheChampion"] = 542, ["Trial of the Champion"] = 542,
+    ["TheForgeOfSouls"] = 601, ["The Forge of Souls"] = 601,
+    ["PitOfSaron"] = 602, ["Pit of Saron"] = 602,
+    ["HallsOfReflection"] = 603, ["Halls of Reflection"] = 603,
 
     -- WotLK Raids (Native: 527..718)
-    ["Naxxramas"] = 535, ["Наксрамас"] = 535,
-    ["TheObsidianSanctum"] = 531, ["The Obsidian Sanctum"] = 531, ["Обсидиановое святилище"] = 531,
-    ["TheEyeOfEternity"] = 527, ["The Eye of Eternity"] = 527, ["Око Вечности"] = 527,
-    ["VaultOfArchavon"] = 532, ["Vault of Archavon"] = 532, ["Склеп Аркавона"] = 532,
-    ["Ulduar"] = 529, ["Ульдуар"] = 529,
-    ["TrialOfTheCrusader"] = 543, ["Trial of the Crusader"] = 543, ["Испытание крестоносца"] = 543,
-    ["OnyxiasLair"] = 718, ["Onyxia's Lair"] = 718, ["Логово Ониксии"] = 718,
-    ["IcecrownCitadel"] = 604, ["Icecrown Citadel"] = 604, ["Цитадель Ледяной Короны"] = 604,
-    ["TheRubySanctum"] = 609, ["The Ruby Sanctum"] = 609, ["Рубиновое святилище"] = 609,
+    ["Naxxramas"] = 535,
+    ["TheObsidianSanctum"] = 531, ["The Obsidian Sanctum"] = 531,
+    ["TheEyeOfEternity"] = 527, ["The Eye of Eternity"] = 527,
+    ["VaultOfArchavon"] = 532, ["Vault of Archavon"] = 532,
+    ["Ulduar"] = 529,
+    ["TrialOfTheCrusader"] = 543, ["Trial of the Crusader"] = 543,
+    ["OnyxiasLair"] = 718, ["Onyxia's Lair"] = 718,
+    ["IcecrownCitadel"] = 604, ["Icecrown Citadel"] = 604,
+    ["TheRubySanctum"] = 609, ["The Ruby Sanctum"] = 609,
 
     -- Battlegrounds (Native: 401..540)
-    ["AlteracValley"] = 401, ["Alterac Valley"] = 401, ["Альтеракская долина"] = 401,
-    ["WarsongGulch"] = 443, ["Warsong Gulch"] = 443, ["Ущелье Песни Войны"] = 443,
-    ["ArathiBasin"] = 461, ["Arathi Basin"] = 461, ["Низина Арати"] = 461,
-    ["EyeOfTheStorm"] = 482, ["Eye of the Storm"] = 482, ["Око Бури"] = 482,
-    ["StrandOfTheAncients"] = 512, ["Strand of the Ancients"] = 512, ["Берег Древних"] = 512,
-    ["IsleOfConquest"] = 540, ["Isle of Conquest"] = 540, ["Остров Завоеваний"] = 540,
+    ["AlteracValley"] = 401, ["Alterac Valley"] = 401,
+    ["WarsongGulch"] = 443, ["Warsong Gulch"] = 443,
+    ["ArathiBasin"] = 461, ["Arathi Basin"] = 461,
+    ["EyeOfTheStorm"] = 482, ["Eye of the Storm"] = 482,
+    ["StrandOfTheAncients"] = 512, ["Strand of the Ancients"] = 512,
+    ["IsleOfConquest"] = 540, ["Isle of Conquest"] = 540,
 }
+for k, v in pairs(GAME_MAP_IDS_DEF) do
+    if not AP.GAME_MAP_IDS[k] then AP.GAME_MAP_IDS[k] = v end
+end
 
 function AP:DetectWDMPatch()
     if self.hasWDMPatch ~= nil then return self.hasWDMPatch end
@@ -343,10 +355,16 @@ end
 function AP:GetGameMapID(keyOrName)
     if not keyOrName then return nil end
     local id = self.GAME_MAP_IDS[keyOrName]
+    if not id and AP.L then
+        id = self.GAME_MAP_IDS[AP.L[keyOrName]]
+    end
     if not id and AtlasPlus_Maps then
         local m = AtlasPlus_Maps[keyOrName]
         if m then
             id = (m.name and self.GAME_MAP_IDS[m.name]) or (m.full and self.GAME_MAP_IDS[m.full])
+            if not id and AP.L then
+                id = (m.name and self.GAME_MAP_IDS[AP.L[m.name]]) or (m.full and self.GAME_MAP_IDS[AP.L[m.full]])
+            end
         end
     end
     return id
@@ -357,6 +375,7 @@ function AP:IsGameMapAvailable(mapID)
     if mapID < 680 or mapID == 718 then return true end
     return self:DetectWDMPatch()
 end
+
 
 ---------------------------------------------------------------------------
 -- Events

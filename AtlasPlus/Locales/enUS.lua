@@ -244,3 +244,34 @@ L["Resize: drag this corner"] = "Resize: drag this corner"
 -- WDM-patch compatibility
 L["Dungeons & Raids"] = "Dungeons & Raids"
 L["Show the interactive game map for this dungeon (supports WDM-patch)."] = "Show the interactive game map for this dungeon (supports WDM-patch)."
+
+-- Additional UI & Tooltip strings
+L["Resize"] = "Resize"
+L["Drag to make the window bigger or smaller."] = "Drag to make the window bigger or smaller."
+L["Entrance"] = "Entrance"
+L["< Back"] = "< Back"
+L["(%d at once)"] = "(%d at once)"
+L["Shift-click: link   Ctrl-click: try on"] = "Shift-click: link   Ctrl-click: try on"
+L["Left-click: open / close"] = "Left-click: open / close"
+L["Drag: move"] = "Drag: move"
+L["Fishing %d"] = "Fishing %d"
+L["-man"] = "-man"
+
+---------------------------------------------------------------------------
+-- Plural format helpers
+---------------------------------------------------------------------------
+function AP.FormatInstances(n)
+    return string.format(n == 1 and L["%d instance"] or L["%d instances"], n)
+end
+
+function AP.FormatBosses(n)
+    return string.format(n == 1 and L["%d boss"] or L["%d bosses"], n)
+end
+
+function AP.FormatItems(n)
+    return string.format(n == 1 and L["%d item"] or L["%d items"], n)
+end
+
+function AP.FormatLists(n)
+    return string.format(n == 1 and L["%d list"] or L["%d lists"], n)
+end
