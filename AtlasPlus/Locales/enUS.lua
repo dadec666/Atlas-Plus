@@ -160,11 +160,11 @@ L["Marker size"] = "Marker size"
 L["Town marker size"] = "Town marker size"
 
 -- Settings credits
-L["Atlas Plus %s (Circle Edition) by Saranwrap & dadec666. Instance maps and legends from Atlas (GPL v2). Zone levels from LibTourist-3.0 (MIT). Database aligned with wowroad.info.\\n/ap - open / close     /ap here - map of where you are     /ap world - world map     /ap search <item>     /ap reset - window position and size"] = "Atlas Plus %s (Circle Edition) by Saranwrap & dadec666. Instance maps and legends from Atlas (GPL v2). Zone levels from LibTourist-3.0 (MIT). Database aligned with wowroad.info.\\n/ap - open / close     /ap here - map of where you are     /ap world - world map     /ap search <item>     /ap reset - window position and size"
+L["Atlas Plus %s (Circle Edition) by Saranwrap & dadec666. Instance maps and legends from Atlas (GPL v2). Zone levels from LibTourist-3.0 (MIT). Database aligned with wowroad.info.\n/ap - open / close     /ap here - map of where you are     /ap world - world map     /ap search <item>     /ap reset - window position and size"] = "Atlas Plus %s (Circle Edition) by Saranwrap & dadec666. Instance maps and legends from Atlas (GPL v2). Zone levels from LibTourist-3.0 (MIT). Database aligned with wowroad.info.\n/ap - open / close     /ap here - map of where you are     /ap world - world map     /ap search <item>     /ap reset - window position and size"
 
 -- Interface options panel
 L["Open Atlas Plus"] = "Open Atlas Plus"
-L["Instance maps with every boss and its loot, item search, and world map zone info.\\n\\n/ap - open / close     /ap here - map of where you are     /ap settings"] = "Instance maps with every boss and its loot, item search, and world map zone info.\\n\\n/ap - open / close     /ap here - map of where you are     /ap settings"
+L["Instance maps with every boss and its loot, item search, and world map zone info.\n\n/ap - open / close     /ap here - map of where you are     /ap settings"] = "Instance maps with every boss and its loot, item search, and world map zone info.\n\n/ap - open / close     /ap here - map of where you are     /ap settings"
 
 -- World Map coords & combat notice
 L["Player"] = "Player"
@@ -201,7 +201,7 @@ L["Window position, size and opacity reset."] = "Window position, size and opaci
 L["/ap - open / close    /ap here - map of where you are    /ap world - world map    /ap search <item>    /ap settings    /ap reset"] = "/ap - open / close    /ap here - map of where you are    /ap world - world map    /ap search <item>    /ap settings    /ap reset"
 
 -- Additional strings
-L["In combat: the map comes back when the fight ends.\\nThe map key (M) opens the game's map meanwhile."] = "In combat: the map comes back when the fight ends.\\nThe map key (M) opens the game's map meanwhile."
+L["In combat: the map comes back when the fight ends.\nThe map key (M) opens the game's map meanwhile."] = "In combat: the map comes back when the fight ends.\nThe map key (M) opens the game's map meanwhile."
 L["In towns"] = "In towns"
 L["Transports, portals, towns"] = "Transports, portals, towns"
 L["Flights"] = "Flights"
@@ -240,3 +240,7 @@ L["Click: open / close"] = "Click: open / close"
 L["Right-click: settings"] = "Right-click: settings"
 L["Drag: move button"] = "Drag: move button"
 L["Resize: drag this corner"] = "Resize: drag this corner"
+
+-- WDM-patch compatibility
+L["Dungeons & Raids"] = "Dungeons & Raids"
+L["Show the interactive game map for this dungeon (supports WDM-patch)."] = "Show the interactive game map for this dungeon (supports WDM-patch)."

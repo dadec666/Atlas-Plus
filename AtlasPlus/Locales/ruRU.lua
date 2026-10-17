@@ -153,11 +153,11 @@ L["Marker size"] = "Размер меток"
 L["Town marker size"] = "Размер городских меток"
 
 -- Settings credits
-L["Atlas Plus %s (Circle Edition) by Saranwrap & dadec666. Instance maps and legends from Atlas (GPL v2). Zone levels from LibTourist-3.0 (MIT). Database aligned with wowroad.info.\\n/ap - open / close     /ap here - map of where you are     /ap world - world map     /ap search <item>     /ap reset - window position and size"] = "Atlas Plus %s [Circle Edition] (авторы: Saranwrap, dadec666). Карты подземелий и описания из Atlas (GPL v2). Уровни зон из LibTourist-3.0 (MIT). База данных согласована с wowroad.info.\\n/ap — открыть/закрыть   /ap here — карта вашей локации   /ap world — карта мира   /ap search <текст>   /ap reset — сброс окна"
+L["Atlas Plus %s (Circle Edition) by Saranwrap & dadec666. Instance maps and legends from Atlas (GPL v2). Zone levels from LibTourist-3.0 (MIT). Database aligned with wowroad.info.\n/ap - open / close     /ap here - map of where you are     /ap world - world map     /ap search <item>     /ap reset - window position and size"] = "Atlas Plus %s [Circle Edition] (авторы: Saranwrap, dadec666). Карты подземелий и описания из Atlas (GPL v2). Уровни зон из LibTourist-3.0 (MIT). База данных согласована с wowroad.info.\n/ap — открыть/закрыть   /ap here — карта вашей локации   /ap world — карта мира   /ap search <текст>   /ap reset — сброс окна"
 
 -- Interface options panel
 L["Open Atlas Plus"] = "Открыть Atlas Plus"
-L["Instance maps with every boss and its loot, item search, and world map zone info.\\n\\n/ap - open / close     /ap here - map of where you are     /ap settings"] = "Карты подземелий со всеми боссами и добычей, поиск предметов и информация о зонах карты мира.\\n\\n/ap — открыть / закрыть   /ap here — карта текущей локации   /ap settings — настройки"
+L["Instance maps with every boss and its loot, item search, and world map zone info.\n\n/ap - open / close     /ap here - map of where you are     /ap settings"] = "Карты подземелий со всеми боссами и добычей, поиск предметов и информация о зонах карты мира.\n\n/ap — открыть / закрыть   /ap here — карта текущей локации   /ap settings — настройки"
 
 -- World Map coords & combat notice
 L["Player"] = "Игрок"
@@ -270,7 +270,7 @@ L["Utgarde Keep"] = "Крепость Утгард"
 L["Utgarde Pinnacle"] = "Вершина Утгард"
 
 -- Additional strings
-L["In combat: the map comes back when the fight ends.\\nThe map key (M) opens the game's map meanwhile."] = "В бою: карта вернется после окончания боя.\\nКлавиша карты (M) временно открывает стандартную карту."
+L["In combat: the map comes back when the fight ends.\nThe map key (M) opens the game's map meanwhile."] = "В бою: карта вернется после окончания боя.\nКлавиша карты (M) временно открывает стандартную карту."
 L["In towns"] = "В городах"
 L["Transports, portals, towns"] = "Транспорт, порталы, города"
 L["Flights"] = "Полеты"
@@ -309,3 +309,7 @@ L["Click: open / close"] = "Клик: открыть / закрыть"
 L["Right-click: settings"] = "Правый клик: настройки"
 L["Drag: move button"] = "Перетаскивание: переместить кнопку"
 L["Resize: drag this corner"] = "Изменение размера: потяните за угол"
+
+-- Совместимость с WDM-patch
+L["Dungeons & Raids"] = "Подземелья и рейды"
+L["Show the interactive game map for this dungeon (supports WDM-patch)."] = "Показать интерактивную карту подземелья из игры (поддерживает WDM-patch)."
