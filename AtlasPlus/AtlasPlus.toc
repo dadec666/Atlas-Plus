@@ -1,6 +1,8 @@
 ## Interface: 30300
 ## Title: Atlas Plus
+## Title-ruRU: Atlas Plus
 ## Notes: World map and instance maps in one window: bosses and loot, item search, map markers, no fog of war.
+## Notes-ruRU: Карта мира и подземелий в одном окне: боссы и добыча, поиск предметов, метки на карте, открытие тумана войны.
 ## Author: Saranwrap
 ## Version: 1.10.1
 ## SavedVariables: AtlasPlusDB
@@ -13,6 +15,8 @@ Data\ZoneRects.lua
 Data\Entrances.lua
 Data\Markers.lua
 Data\Town.lua
+Locales\enUS.lua
+Locales\ruRU.lua
 Core.lua
 Widgets.lua
 WorldView.lua
