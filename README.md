@@ -1,49 +1,51 @@
-# Atlas Plus
+# Atlas Plus [Circle Edition]
 
-**Instance maps with every boss and its loot.** For World of Warcraft 3.3.5a (Wrath of the Lich King).
+[![WoW Version](https://img.shields.io/badge/WoW-3.3.5a%20(12340)-blue.svg)](https://wowroad.info/)
+[![Database](https://img.shields.io/badge/Database-wowroad.info-orange.svg)](https://wowroad.info/)
+[![Version](https://img.shields.io/badge/Release-1.10.1--circle-brightgreen.svg)](https://github.com/dadec666/Atlas-Plus/releases)
+[![Localization](https://img.shields.io/badge/Language-ruRU%20%7C%20enUS-green.svg)](https://github.com/dadec666/Atlas-Plus)
+[![License](https://img.shields.io/badge/License-GPL%20v2-lightgrey.svg)](LICENSE.txt)
 
-Version 1.10.1 · For World of Warcraft 3.3.5a (Wrath of the Lich King)
-
-Atlas Plus puts the world map, the map of every dungeon and raid, their bosses and everything they drop in one clean window, and opens on the right map by itself. It also replaces map marker addons and removes the fog of war.
-
-- **Localization / Локализация**: English and Russian (`enUS` / `ruRU`) supported natively.
-- **Opens where you are**: in a dungeon or raid, on its map (and the right wing of Ulduar, Icecrown Citadel, Karazhan, Dire Maul...) with the loot of your difficulty. Outdoors, on the world map, on your zone.
-- **Every instance**: Classic, Burning Crusade and Wrath dungeons and raids, plus entrance maps and dungeon locations.
-- **Every boss and its loot**: Normal / Heroic, 10 / 25 / 10 Heroic / 25 Heroic, drop chance of each item ("2x" when two drop at once, like emblems), Ulduar hard modes, Alliance / Horde only items, chests, and trash drops. Class items (Vault of Archavon PvP sets, tier pieces...) are in a folded list per class (yours open).
-- **World drops**: their own lists in the left panel (Classic, Burning Crusade, Wrath): rare and epic items and recipes any creature of the right level can drop, with the creature levels and the chance per kill.
-- **World events**: Hallow's End, Brewfest, Love is in the Air, Midsummer, Winter Veil, Lunar Festival, Noblegarden, Children's Week, Pilgrim's Bounty, Darkmoon Faire and more: the holiday bosses and their reward bags, the event vendors with their prices, and the quest rewards.
-- **Vendors**: what you can buy with each currency (badges and emblems, Stone Keeper's Shards, Champion's Seals, honor and arena points, battleground marks, Wintergrasp marks...), vendor by vendor with its zone and the price of every item.
-- **Search** instances (also by short name and Russian acronyms: ICC / ЦЛК, Uld / Ульда, EoE / Око, VoA / СА...), bosses, events, vendors and items: every result says where the item comes from (boss, world drop, vendor or quest).
-- **World map in the same window**: the map key (M) opens Atlas Plus with the game's own map inside, so quest objectives and Questie keep working. Zone levels, instances and fishing skill, clickable instance icons, coordinates.
-- **Map markers**: dungeons, raids, world bosses, boats, zeppelins, the Deeprun Tram and portals. Click a transport or portal to go to where it leads. Filter them, or find any of them in a list.
-- **No fog of war**: unexplored areas are shown (a bit darker, optional).
+**Карта мира и подземелий в одном окне: боссы и добыча, поиск предметов, метки на карте, открытие тумана войны.**  
+Форк аддона Atlas Plus для World of Warcraft 3.3.5a (Wrath of the Lich King), оптимизированный для серверов **WoW Circle** и согласованный с базой данных [wowroad.info](https://wowroad.info/).
 
 ---
 
-## Install
-
-1. Download the repository archive.
-2. Put the `AtlasPlus` folder into your `Interface\AddOns\` directory.
-3. Keep the folder name as `AtlasPlus`.
-
----
-
-## Commands
-
-| Command | Action |
-| --- | --- |
-| `/ap` | Open / close |
-| `/ap here` | The map of where you are |
-| `/ap world` | The world map page |
-| `/ap search <text>` | Search instances, bosses and the loot of every instance |
-| `/ap settings` | Settings |
-| `/ap reset` | Window position, size and opacity |
+### Особенности издания Circle Edition:
+- **Полная русская локализация (`ruRU`):** интерфейс, карта мира, панель настроек, маркеры и подсказки переведены в соответствии с официальным клиентом 3.3.5a и базой [wowroad.info](https://wowroad.info/).
+- **Умный поиск на русском:** поиск подземелий по общепринятым сокращениям (ЦЛК, ИК, ИВК, РС, Ульда, Накс, ОС, Око, СА/Склеп, Кузня, Яма, Залы, ИЧ, АК, Гундрак, ДТК, ЧМ, ЧК, АН, АСК) и названиям предметов/боссов.
+- **Корректные склонения:** грамматически правильный вывод счетчиков («1 подземелье», «2 подземелья», «5 подземелий», «боссов», «предметов»).
+- **Универсальность 3.3.5a:** удалены искусственные ограничения сторонних ядер и фаз прогрессии — отображается стандартная добыча и эмблемы актуала WotLK 3.3.5a.
+- **Очищенный код:** проверен на отсутствие утечек памяти, защиту от ошибок в бою (`ADDON_ACTION_BLOCKED`) и строгую совместимость с Lua 5.1.
 
 ---
 
-## About the data
+### Установка
 
-- **Maps and legends**: [Atlas](http://www.atlasmod.com) by Dan Gilbert and contributors, released under the GNU GPL v2.
-- **Loot and drop chances**: Standard 3.3.5a database ([wowroad.info](https://wowroad.info/)).
-- **Zone levels and instances**: LibTourist-3.0 (MIT, ckknight and Arrowmaster).
-- **Localization**: Supports English (`enUS`/`enGB`) and Russian (`ruRU`).
+1. Скачайте архив со страницы [Releases](https://github.com/dadec666/Atlas-Plus/releases).
+2. Распакуйте папку `AtlasPlus` в директорию `World of Warcraft\Interface\AddOns\`.
+3. Убедитесь, что папка называется именно `AtlasPlus`.
+4. Перезапустите игру или введите `/console reloadui`.
+
+---
+
+### Команды
+
+| Команда | Описание |
+| :--- | :--- |
+| `/ap` | Открыть / закрыть окно аддона |
+| `/ap here` | Открыть карту текущей локации или подземелья |
+| `/ap world` | Открыть карту мира |
+| `/ap search <текст>` | Поиск по подземельям, боссам и добыче |
+| `/ap settings` | Окно настроек |
+| `/ap reset` | Сброс положения, размера и прозрачности окна |
+
+---
+
+### Авторы и благодарности
+
+- **Оригинальный разработчик:** [Saranwrap](https://github.com/saranwrap04) (Atlas Plus).
+- **Разработчик форка Circle Edition и локализация:** [dadec666](https://github.com/dadec666).
+- **Карты и легенды:** проект [Atlas](http://www.atlasmod.com) (Dan Gilbert и контрибьюторы, лицензия GNU GPL v2).
+- **База данных:** [wowroad.info](https://wowroad.info/) (WoW Circle).
+- **Уровни зон:** LibTourist-3.0 (MIT, ckknight и Arrowmaster).

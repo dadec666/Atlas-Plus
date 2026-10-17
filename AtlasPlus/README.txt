@@ -1,8 +1,9 @@
-ATLAS PLUS for WoW 3.3.5a - version 1.10.1
+ATLAS PLUS [Circle Edition] for WoW 3.3.5a - version 1.10.1-circle
 World map and instance maps in one window: every boss and its loot, world drops,
 world events, vendors, item search,
 map markers (dungeons, raids, world bosses, boats, zeppelins, tram, portals), no fog of war.
-For World of Warcraft 3.3.5a (Wrath of the Lich King).
+By Saranwrap & dadec666. Adapted for WoW Circle (WotLK 3.3.5a).
+Database aligned with https://wowroad.info/
 
 
 INSTALL
