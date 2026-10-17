@@ -2,7 +2,7 @@ ATLAS PLUS for WoW 3.3.5a - version 1.10.1
 World map and instance maps in one window: every boss and its loot, world drops,
 world events, vendors, item search,
 map markers (dungeons, raids, world bosses, boats, zeppelins, tram, portals), no fog of war.
-By Saranwrap. Made for ChromieCraft (AzerothCore).
+For World of Warcraft 3.3.5a (Wrath of the Lich King).
 
 
 INSTALL
@@ -29,9 +29,7 @@ OPEN IT
 THE WINDOW
   Two tabs at the top: "World map" and "Atlas" (instance maps, bosses and loot).
   Move it by dragging its title, resize it with the corner at the bottom right.
-  Opacity in the settings. While you move, it fades (50% by default, setting) unless the
-  mouse is over it. In combat the map leaves the window until the fight ends (the game
-  does not allow moving it then); the map key opens the game's map meanwhile.
+  Opacity in the settings. While you move, it fades to 50% unless the mouse is over it.
 
   ATLAS TAB
 
@@ -49,8 +47,6 @@ THE WINDOW
              - A / H = Alliance / Horde only
              - class items (Vault of Archavon PvP sets, tier pieces...) in a folded list per
                class, like the instance list; your class is open. Click a class to open it.
-             - emblems: the one of the server's current phase first ("current phase"), then
-               the one it gives in a later phase ("later phase")
              - right-click in the loot list: back to the bosses
            "Trash mobs" at the end of the legend: what the trash of that instance drops.
            "Entrance map" / "Instances" switch between an instance and its entrance.
@@ -92,8 +88,7 @@ WORLD MAP (inside Atlas Plus)
     Dungeons (blue) and raids (green): click one for its map, bosses and loot.
     World bosses, boats, zeppelins, the Deeprun Tram and portals: click one to go to
     the map where it leads (the arrival point pulses).
-    Town markers: flight masters, innkeepers, mailboxes, banks, auction houses (the game's
-    tracking icons), each on / off, with their own size.
+    Town markers: flight masters, innkeepers, mailboxes, banks, auction houses.
     Ring color: blue Alliance, red Horde, gold neutral.
     Markers also show on continent maps (smaller), and can be turned off there.
     Group size in the tooltips: 5, 10, 25, 40, or 10/25 for the Wrath raids.
@@ -115,12 +110,12 @@ SETTINGS
   Settings button (or right-click the minimap button, or /ap settings). It is a window
   of its own: move it, resize it from its corner, and watch the map change as you go.
   Window       open on the map of where you are, open by itself in instances, minimap
-               button, lock, fade while moving, opacity while moving, size, opacity.
+               button, lock, fade while moving, size, opacity.
   World map    map key (M), game instance maps, no fog of war, darken unexplored areas,
                zone panel, zone info under the cursor, coordinates, quest icon size,
                opacity and small map size of the game's map opened on its own.
-  Map markers  each type on / off (towns included), on continent maps too, hide Questie's
-               dungeon and raid icons, only my faction's, marker size, town marker size.
+  Map markers  each type on / off, on continent maps too, hide Questie's dungeon and
+               raid icons, only my faction's transports and portals, marker size.
   Quest icon size changes the game's numbered quest icons. Questie's icons have their
   own size settings in Questie.
 
@@ -137,21 +132,16 @@ COMMANDS
 ABOUT THE DATA
   Maps and legends: Atlas by Dan Gilbert and contributors (GNU GPL v2). Atlas Plus is
   released under the same license (LICENSE.txt).
-  Loot, drop chances, vendors, quests, world events: the AzerothCore world database (the
-  core ChromieCraft runs on). A server can change some of its loot, so treat the chances
-  as a guide. World drop chances are for a typical creature of the level. Event dates
-  are the usual ones; the server's calendar has the exact dates.
-  Emblems by phase: ChromieCraft's progression module (mod-progression-system), up to
-  Phase 3 (Ulduar). When the server reaches a new phase, the "current phase" emblems can
-  be out of date until Atlas Plus is updated.
-  Prices: the game's ItemExtendedCost table.
+  Loot, drop chances, vendors, quests, world events: standard 3.3.5a database (wowroad.info).
+  Drop chances may vary depending on server settings.
   Zone levels and instances: LibTourist-3.0 (MIT, ckknight and Arrowmaster).
-  Boats, zeppelins, portals, world bosses: the AzerothCore world database (transport
+  Boats, zeppelins, portals, world bosses: standard 3.3.5a database (transport
   routes, portals and their destinations, spawns), placed on the maps with the game's
   own WorldMapArea table. Unexplored areas: the game's WorldMapOverlay table.
   Exact entrances of the Hellfire, Coilfang, Tempest Keep and Auchindoun wings and a few
   others: the game's AreaTrigger table.
   Instance icons: Blizzard Entertainment game art, from the Questie icon set.
   Marker icons (boat, zeppelin, tram, portal, world boss): drawn for Atlas Plus.
+  Localization: English (enUS/enGB) and Russian (ruRU).
 
   Settings are saved in WTF\Account\<ACCOUNT>\SavedVariables\AtlasPlus.lua
