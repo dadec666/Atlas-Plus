@@ -127,12 +127,33 @@ end
 
 local function TranslateZone(z)
     if not z or z == "" then return "" end
-    if L[z] and L[z] ~= z then return L[z] end
-    local z1, z2 = z:match("^(.-)%s*/%s*(.+)$")
-    if z1 and z2 then
-        return (L[z1] or z1) .. " / " .. (L[z2] or z2)
+    local color, coreZ = z:match("^(|c%x%x%x%x%x%x%x%x)(.*)$")
+    coreZ = coreZ or z
+    local hasReset = false
+    if coreZ:sub(-2) == "|r" then
+        coreZ = coreZ:sub(1, -3)
+        hasReset = true
     end
-    return z
+
+    local translated
+    if L[coreZ] and L[coreZ] ~= coreZ then
+        translated = L[coreZ]
+    else
+        local z1, z2 = coreZ:match("^(.-)%s*/%s*(.+)$")
+        if z1 and z2 then
+            translated = (L[z1] or z1) .. " / " .. (L[z2] or z2)
+        else
+            translated = L[coreZ] or coreZ
+        end
+    end
+
+    if color then
+        return color .. translated .. "|r"
+    elseif hasReset then
+        return translated .. "|r"
+    else
+        return translated
+    end
 end
 
 local function TranslateLegendText(body)
@@ -141,11 +162,11 @@ local function TranslateLegendText(body)
 
     local rep = body:match("^Reputation:%s*(.+)$")
     if rep then
-        return (L["Reputation: "] or "Reputation: ") .. (L[rep] or rep)
+        return (L["Reputation: "] or "Reputation: ") .. TranslateLegendText(rep)
     end
     local keyName = body:match("^Key:%s*(.+)$")
     if keyName then
-        return (L["Key: "] or "Key: ") .. (L[keyName] or keyName)
+        return (L["Key: "] or "Key: ") .. TranslateLegendText(keyName)
     end
     local inst, zone = body:match("^(.-),%s*(.+)$")
     if inst and zone then
@@ -153,7 +174,7 @@ local function TranslateLegendText(body)
     end
     local base, tag = body:match("^(.-)%s*(%b())$")
     if base and tag then
-        local locBase = L[base] or base
+        local locBase = TranslateLegendText(base)
         local inner = tag:sub(2, -2)
         local t1, t2 = inner:match("^(.-),%s*(.+)$")
         local locTag
@@ -163,6 +184,13 @@ local function TranslateLegendText(body)
             locTag = L[inner] or inner
         end
         return locBase .. " (" .. locTag .. ")"
+    end
+    local base2, angleTag = body:match("^(.-)%s*(%b<>)$")
+    if base2 and angleTag then
+        local locBase = TranslateLegendText(base2)
+        local inner = angleTag:sub(2, -2)
+        local locTag = L[inner] or inner
+        return locBase .. " <" .. locTag .. ">"
     end
     return L[body] or body
 end
@@ -193,7 +221,7 @@ local function FormatLegend(raw)
     local out = prefix .. translatedBody
     if color ~= "" then
         out = color .. out .. "|r"
-    elseif hasReset then
+    elseif hasReset and not out:find("|r$") then
         out = out .. "|r"
     end
     return out
