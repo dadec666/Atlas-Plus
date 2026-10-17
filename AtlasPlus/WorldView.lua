@@ -11,6 +11,7 @@ local W = AP.W
 local C = W.C
 local WV = {}
 AP.WorldView = WV
+local L = AP.L
 
 local MAP_W, MAP_H = 1002, 668          -- size of the game's world map art
 local BAR_H, FOOT_H = 28, 26
@@ -50,11 +51,11 @@ function WV.ZoneLines(z)
             local iz = AtlasPlus_Zones[iname]
             local ir = iz and Range(iz)
             local gs = AP:GroupSize(iname)
-            local size = gs and ("  |cffaaaaaa" .. gs .. "-man|r") or ""
+            local size = gs and ("  |cffaaaaaa" .. gs .. (GetLocale() == "ruRU" and " чел.|r" or "-man|r")) or ""
             lines[#lines + 1] = (iz and LevelColor(iz[1], iz[2]) or "|cffffffff") .. iname .. (ir and ("  " .. ir) or "") .. "|r" .. size
         end
     end
-    if z and z[7] and z[7] > 0 then lines[#lines + 1] = "|cff88ccffFishing " .. z[7] .. "|r" end
+    if z and z[7] and z[7] > 0 then lines[#lines + 1] = (GetLocale() == "ruRU" and ("|cff88ccffРыбная ловля " .. z[7] .. "|r") or ("|cff88ccffFishing " .. z[7] .. "|r")) end
     return lines
 end
 
@@ -78,9 +79,9 @@ function WV:Create(parent, width)
     bar:SetPoint("TOPRIGHT", -1, -1)
     bar:SetHeight(BAR_H)
     W.Backdrop(bar, C.panel, C.panel)
-    local up = W.Button(bar, "< Zoom out", 82, 20)
+    local up = W.Button(bar, L["< Zoom out"], 82, 20)
     up:SetPoint("LEFT", 4, 0)
-    up.tip = "Zone > continent > world. Right-click on the map does the same."
+    up.tip = L["Zone > continent > world. Right-click on the map does the same."]
     up:SetScript("OnClick", function() WV:ZoomOut() end)
     local prev = up
     self.contBtns = {}
@@ -92,21 +93,21 @@ function WV:Create(parent, width)
         self.contBtns[i] = b
         prev = b
     end
-    local zoneBtn = W.Button(bar, "Zone  v", 150, 20)
+    local zoneBtn = W.Button(bar, L["Zone"] .. "  v", 150, 20)
     zoneBtn:SetPoint("LEFT", prev, "RIGHT", 10, 0)
     zoneBtn:SetScript("OnClick", function(b) WV:ZoneMenu(b) end)
     self.zoneBtn = zoneBtn
-    local here = W.Button(bar, "Find me", 70, 20)
+    local here = W.Button(bar, L["Find me"], 70, 20)
     here:SetPoint("RIGHT", -4, 0)
-    here.tip = "The map of your zone, with a pulse on your arrow."
+    here.tip = L["The map of your zone, with a pulse on your arrow."]
     here:SetScript("OnClick", function() AP.Markers:FindMe() end)
-    local game = W.Button(bar, "Game map", 80, 20)
+    local game = W.Button(bar, L["Game map"], 80, 20)
     game:SetPoint("RIGHT", here, "LEFT", -4, 0)
-    game.tip = "The game's full screen map, with the quest list."
+    game.tip = L["The game's full screen map, with the quest list."]
     game:SetScript("OnClick", function() AP.WorldMap:OpenGameMap() end)
-    local quests = W.Button(bar, "Quests", 64, 20)
+    local quests = W.Button(bar, L["Quests"], 64, 20)
     quests:SetPoint("RIGHT", game, "LEFT", -4, 0)
-    quests.tip = "Show or hide quest objectives on the map."
+    quests.tip = L["Show or hide quest objectives on the map."]
     quests:SetScript("OnClick", function()
         local cb = WorldMapQuestShowObjectives
         if cb then
@@ -151,17 +152,17 @@ function WV:Create(parent, width)
     foot:SetFont(f3, s3 + 1, "OUTLINE")
     foot:SetPoint("BOTTOMLEFT", 10, 7)
     self.coords = foot
-    local find = W.Button(panel, "Find", 70, 20)
+    local find = W.Button(panel, L["Find"], 70, 20)
     find:SetPoint("BOTTOMRIGHT", -24, 4)
-    find.tip = "Find a dungeon, raid, world boss, boat, zeppelin, tram or portal and show it on the map."
+    find.tip = L["Find a dungeon, raid, world boss, boat, zeppelin, tram or portal and show it on the map."]
     find:SetScript("OnClick", function() AP.Markers:ToggleFind() end)
-    local markers = W.Button(panel, "Markers  v", 90, 20)
+    local markers = W.Button(panel, L["Markers"] .. "  v", 90, 20)
     markers:SetPoint("RIGHT", find, "LEFT", -4, 0)
-    markers.tip = "Choose which markers the map shows."
+    markers.tip = L["Choose which markers the map shows."]
     markers:SetScript("OnClick", function(b) AP.Markers:FilterMenu(b) end)
     local hint = W.Text(panel, "GameFontDisableSmall")
     hint:SetPoint("RIGHT", markers, "LEFT", -14, 0)
-    hint:SetText("Left-click: zoom in    Right-click: zoom out")
+    hint:SetText(L["Left-click: zoom in    Right-click: zoom out"])
     AP.Markers:CreateFind(panel, holder)
 
     local ev = CreateFrame("Frame")
@@ -186,7 +187,7 @@ function WV:Refresh()
     if not (self.panel and self.panel:IsVisible()) then return end
     local c = GetCurrentMapContinent()
     for i, b in ipairs(self.contBtns) do b:SetSelected(i == c) end
-    self.zoneBtn:SetText((ShownZoneName() or "Zone") .. "  v")
+    self.zoneBtn:SetText((ShownZoneName() or L["Zone"]) .. "  v")
     self.questsBtn:SetSelected(WorldMapQuestShowObjectives and WorldMapQuestShowObjectives:GetChecked() and true or false)
 
     -- zone block: the zone shown on the map
@@ -233,5 +234,5 @@ function WV:OnUpdate(elapsed)
         local x, y = (cx / s - b:GetLeft()) / b:GetWidth(), (b:GetTop() - cy / s) / b:GetHeight()
         if x >= 0 and x <= 1 and y >= 0 and y <= 1 then ctext = string.format("%.1f, %.1f", x * 100, y * 100) end
     end
-    self.coords:SetText("|cffffd100Player|r  " .. ptext .. "        |cffffd100Cursor|r  " .. ctext)
+    self.coords:SetText("|cffffd100" .. L["Player"] .. "|r  " .. ptext .. "        |cffffd100" .. L["Cursor"] .. "|r  " .. ctext)
 end
