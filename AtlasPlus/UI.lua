@@ -126,10 +126,11 @@ local function StripColor(s)
 end
 
 local function LineTitle(key, line)
-    if line == "trash" then return "Trash mobs" end
+    if line == "trash" then return L["Trash mobs"] end
     local l = AtlasPlus_Maps[key].lines[line]
     local t = strtrim(StripColor(l and l[1] or ""))
-    return (t:gsub("^%w+'?%)%s*", ""))
+    t = t:gsub("^%w+'?%)%s*", "")
+    return L[t] or t
 end
 
 ---------------------------------------------------------------------------
@@ -178,7 +179,7 @@ function UI:Create()
     tfs:SetText("|cffffffffAtlas Plus|r")
     local ver = W.Text(title, "GameFontDisableSmall")
     ver:SetPoint("LEFT", tfs, "RIGHT", 6, -1)
-    ver:SetText("v" .. AP.VERSION .. "  -  by Saranwrap")
+    ver:SetText("v" .. AP.VERSION .. "  -  by Saranwrap, dadec666")
 
     local close = W.Button(title, "X", 26, 22)
     close:SetPoint("RIGHT", -4, 0)
@@ -459,14 +460,15 @@ function UI:RefreshList()
         if e then
             if e.cat then
                 local open = not AP.db.collapsed[e.cat]
-                row.fs:SetText(AP.ACCENT .. (open and "-  " or "+  ") .. (CAT_SHORT[e.cat] or e.cat) .. "|r")
+                local catTitle = L[CAT_SHORT[e.cat] or e.cat] or CAT_SHORT[e.cat] or e.cat
+                row.fs:SetText(AP.ACCENT .. (open and "-  " or "+  ") .. catTitle .. "|r")
                 row.fs:SetFontObject("GameFontNormalSmall")
                 row.sel:Hide()
             else
                 local m = AtlasPlus_Maps[e.key]
                 local lvl = m.lvl and ("|cff888888 " .. m.lvl .. "|r") or ""
                 row.fs:SetFontObject("GameFontHighlightSmall")
-                row.fs:SetText("   " .. m.name .. lvl)
+                row.fs:SetText("   " .. (L[m.name] or m.name) .. lvl)
                 if e.key == self.mapKey and self.page == "instance" then row.sel:Show() else row.sel:Hide() end
             end
             row:Show()
@@ -821,7 +823,7 @@ end
 function UI:RefreshHeader()
     local key = self.mapKey
     local m = AtlasPlus_Maps[key]
-    self.hName:SetText(m.name)
+    self.hName:SetText(L[m.name] or m.name)
     local bits = {}
     if m.lvl then bits[#bits + 1] = string.format(L["Level %s"], m.lvl) end
     if m.minlvl then bits[#bits + 1] = string.format(L["min. %s"], m.minlvl) end
@@ -830,8 +832,8 @@ function UI:RefreshHeader()
     if m.acr and m.acr ~= "" then bits[#bits + 1] = "|cff888888" .. m.acr .. "|r" end
     self.hInfo:SetText(table.concat(bits, "   "))
     local hub = m.full and m.full:match("^(.-):") or nil
-    local locText = m.loc and (L["Location: "] .. m.loc) or ""
-    if hub and hub ~= m.name then locText = hub .. (locText ~= "" and ("  -  " .. locText) or "") end
+    local locText = m.loc and (L["Location: "] .. (L[m.loc] or m.loc)) or ""
+    if hub and hub ~= m.name then locText = (L[hub] or hub) .. (locText ~= "" and ("  -  " .. locText) or "") end
     self.hLoc:SetText(locText)
 
     local A = AtlasPlus_Assoc
@@ -975,7 +977,7 @@ function UI:RefreshRight()
     local m = AtlasPlus_Maps[self.mapKey]
     if self.view == "loot" then
         local t = LineTitle(self.mapKey, self.lootLine)
-        self.sub:SetText(t .. (m.nomap and "" or ("  |cff888888" .. (AP.MODE_LABEL[self.mode] or "") .. "|r")))
+        self.sub:SetText((L[t] or t) .. (m.nomap and "" or ("  |cff888888" .. (AP.MODE_LABEL[self.mode] or "") .. "|r")))
     elseif self.view == "search" then
         local f = self.found or { places = 0, bosses = 0, items = #(self.results or {}) }
         local parts = {}
@@ -1036,8 +1038,8 @@ function UI:RefreshRows()
                 local name, _, q, typ, _, fac = ItemInfo(d.id)
                 row.icon:SetTexture(GetItemIcon(d.id) or "Interface\\Icons\\INV_Misc_QuestionMark")
                 row.left:SetText((d.count and ("|cffffffff" .. d.count .. "x|r ") or "") .. (W.QUALITY_HEX[q] or "") .. name .. "|r" .. (FACTION_TAG[fac or ""] or "") .. (d.hm and " |cffff8040HM|r" or "") or "")
-                local mid = typ
-                if d.lv then mid = typ .. " |cff888888L" .. d.lv .. "|r" end
+                local mid = AP.FormatItemType and AP.FormatItemType(typ) or (L[typ] or typ)
+                if d.lv then mid = mid .. " |cff888888L" .. d.lv .. "|r" end
                 row.mid:SetText(mid)
                 if d.cost or d.copper then row.right:SetText(CostText(d))
                 elseif d.quest then row.right:SetText("|cffffd100" .. L["Quest"] .. "|r")
