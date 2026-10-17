@@ -3,7 +3,7 @@
     Author: Saranwrap
 
     Instance maps and their legends come from Atlas (GPL v2, Dan Gilbert and contributors).
-    Loot comes from the AzerothCore world database (the core ChromieCraft runs on).
+    Loot and drop chances based on standard 3.3.5a WotLK database (wowroad.info).
 ]]
 
 local ADDON_NAME = ...
@@ -13,6 +13,16 @@ AP.VERSION = "1.10.1"
 AP.MEDIA = "Interface\\AddOns\\" .. ADDON_NAME .. "\\"
 AP.MAPS = AP.MEDIA .. "Images\\Maps\\"
 AP.ACCENT = "|cfffc7a2b"
+
+local math_abs, math_floor = math.abs, math.floor
+function AP.GetPluralRu(n, form1, form2, form5)
+    n = math_abs(math_floor(n)) % 100
+    local n1 = n % 10
+    if n > 10 and n < 20 then return form5 end
+    if n1 > 1 and n1 < 5 then return form2 end
+    if n1 == 1 then return form1 end
+    return form5
+end
 
 local DEFAULTS = {
     autoSelect = true,      -- open on the map of the instance (or entrance) you are in
@@ -60,10 +70,8 @@ AP.CAT_ICON = {
     ["World Events"] = "Interface\\Icons\\INV_Misc_Gift_02",
     ["Vendors"] = "Interface\\Icons\\INV_Misc_Coin_02",
 }
--- the server's current phase (ChromieCraft), for the emblems
-AP.PHASE = "Phase 3, Ulduar"
 
-AP.MODE_LABEL = { N = "Normal", H = "Heroic", ["10"] = "10", ["25"] = "25", ["10H"] = "10 Heroic", ["25H"] = "25 Heroic" }
+AP.MODE_LABEL = { N = AP.L["Normal"], H = AP.L["Heroic"], ["10"] = "10", ["25"] = "25", ["10H"] = AP.L["10 Heroic"], ["25H"] = AP.L["25 Heroic"] }
 
 local function CopyDefaults(dst, src)
     for k, v in pairs(src) do
@@ -288,7 +296,7 @@ end)
 -- Slash commands / key binding
 ---------------------------------------------------------------------------
 BINDING_HEADER_ATLASPLUS = "Atlas Plus"
-BINDING_NAME_ATLASPLUS_TOGGLE = "Open / close Atlas Plus"
+BINDING_NAME_ATLASPLUS_TOGGLE = AP.L["Open / close Atlas Plus"]
 
 function AtlasPlus_Toggle() AP.UI:Toggle() end
 
@@ -312,11 +320,11 @@ SlashCmdList.ATLASPLUS = function(msg)
         AP.db.gameMapAlpha, AP.db.gameSmallScale = 1, 1
         if AP.WorldMap then AP.WorldMap:Update() end
         AP.UI:ApplyLayout()
-        AP:Print("Window position, size and opacity reset.")
+        AP:Print(AP.L["Window position, size and opacity reset."])
     elseif msg:match("^search ") then
         AP.UI:Show()
         AP.UI:Search(msg:match("^search (.+)$"))
     else
-        AP:Print("/ap - open / close    /ap here - map of where you are    /ap world - world map    /ap search <item>    /ap settings    /ap reset")
+        AP:Print(AP.L["/ap - open / close    /ap here - map of where you are    /ap world - world map    /ap search <item>    /ap settings    /ap reset"])
     end
 end

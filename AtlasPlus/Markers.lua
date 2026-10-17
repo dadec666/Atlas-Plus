@@ -10,6 +10,7 @@ local W = AP.W
 local C = W.C
 local MK = {}
 AP.Markers = MK
+local L = AP.L
 
 local MAP_W, MAP_H = 1002, 668
 local CONT = { ["Kalimdor"] = 1, ["Eastern Kingdoms"] = 2, ["Outland"] = 3, ["Northrend"] = 4 }
@@ -19,26 +20,24 @@ local RING = 5
 local FACTION_COLOR = { Alliance = { 0.30, 0.55, 1 }, Horde = { 0.90, 0.22, 0.18 }, Neutral = { 0.95, 0.75, 0.25 } }
 
 MK.TYPES = {
-    { key = "dungeon",   label = "Dungeons" },
-    { key = "raid",      label = "Raids" },
-    { key = "worldboss", label = "World bosses" },
-    { key = "boat",      label = "Boats" },
-    { key = "zepp",      label = "Zeppelins" },
-    { key = "tram",      label = "Tram" },
-    { key = "portal",    label = "Portals" },
-    { key = "flight",    label = "Flight masters", town = true },
-    { key = "inn",       label = "Innkeepers", town = true },
-    { key = "mail",      label = "Mailboxes", town = true },
-    { key = "bank",      label = "Banks", town = true },
-    { key = "auction",   label = "Auction houses", town = true },
+    { key = "dungeon",   label = L["Dungeons"] },
+    { key = "raid",      label = L["Raids"] },
+    { key = "worldboss", label = L["World bosses"] },
+    { key = "boat",      label = L["Boats"] },
+    { key = "zepp",      label = L["Zeppelins"] },
+    { key = "tram",      label = L["Tram"] },
+    { key = "portal",    label = L["Portals"] },
+    { key = "flight",    label = L["Flight masters"], town = true },
+    { key = "inn",       label = L["Innkeepers"], town = true },
+    { key = "mail",      label = L["Mailboxes"], town = true },
+    { key = "bank",      label = L["Banks"], town = true },
+    { key = "auction",   label = L["Auction houses"], town = true },
 }
-local TYPE_LABEL = { dungeon = "Dungeon", raid = "Raid", worldboss = "World boss", boat = "Boat", zepp = "Zeppelin", tram = "Tram", portal = "Portal",
-                     flight = "Flight master", inn = "Innkeeper", mail = "Mailbox", bank = "Bank", auction = "Auction house" }
--- town markers: the game's own minimap tracking icons
-local TOWN = { flight = "FlightMaster", inn = "Innkeeper", mail = "Mailbox", bank = "Banker", auction = "Auctioneer" }
-local TOWN_CODE = { f = "flight", i = "inn", m = "mail", b = "bank", a = "auction" }
-local FAC_CODE = { A = "Alliance", H = "Horde", N = "Neutral" }
-MK.TOWN = TOWN
+local TYPE_LABEL = {
+    dungeon = L["Dungeon"], raid = L["Raid"], worldboss = L["World boss"], boat = L["Boat"],
+    zepp = L["Zeppelin"], tram = L["Tram"], portal = L["Portal"], flight = L["Flight master"],
+    inn = L["Innkeeper"], mail = L["Mailbox"], bank = L["Bank"], auction = L["Auction house"]
+}
 local TRAVEL = { boat = true, zepp = true, tram = true, portal = true }
 
 ---------------------------------------------------------------------------
@@ -59,8 +58,12 @@ local function Build()
         add({ type = e[1], fac = e[2], name = e[3], note = e[4] ~= "" and e[4] or nil, cont = e[5], zone = e[6],
               x = e[7], y = e[8], floor = e[9], dest = dest })
     end
+    -- town markers: flight masters, inns, mailboxes, banks, auction houses (Data\Town.lua)
     for _, e in ipairs(AtlasPlus_Town or {}) do
-        add({ type = TOWN_CODE[e[1]], fac = FAC_CODE[e[2]], name = e[3], cont = e[4], zone = e[5], x = e[6], y = e[7], floor = e[8], dest = {}, town = true })
+        local t = e[1]
+        local typ = (t == "f" and "flight") or (t == "i" and "inn") or (t == "b" and "bank") or (t == "a" and "auction") or (t == "m" and "mail")
+        local fac = (e[2] == "A" and "Alliance") or (e[2] == "H" and "Horde") or "Neutral"
+        add({ type = typ, fac = fac, name = e[3], cont = e[4], zone = e[5], x = e[6], y = e[7], floor = e[8], town = true })
     end
     local SKIP = { ["Scarlet Monastery"] = true, ["Tempest Keep"] = true, ["Hellfire Citadel"] = true,
                    ["Coilfang Reservoir"] = true, ["Caverns of Time"] = true, ["Ring of Observance"] = true }   -- groups of wings
@@ -106,9 +109,9 @@ local function PinOnEnter(self)
     if Levels(m) then GameTooltip:AddLine(Levels(m)) end
     if m.note then GameTooltip:AddLine(m.note, 0.8, 0.8, 0.8) end
     if m.key then
-        GameTooltip:AddLine("Click: map, bosses and loot", 0.6, 0.6, 0.6)
+        GameTooltip:AddLine(L["Click: map, bosses and loot"], 0.6, 0.6, 0.6)
     elseif m.dest and m.dest[1] then
-        GameTooltip:AddLine("Click: go to " .. m.dest[1].zone, 0.6, 0.6, 0.6)
+        GameTooltip:AddLine(string.format(L["Click: go to %s"], m.dest[1].zone), 0.6, 0.6, 0.6)
     end
     GameTooltip:Show()
 end
@@ -148,6 +151,15 @@ local function Pin(i)
     return p
 end
 
+local TOWN_UV = {
+    flight  = { 0 / 256, 32 / 256, 0, 1 },
+    inn     = { 32 / 256, 64 / 256, 0, 1 },
+    mail    = { 64 / 256, 96 / 256, 0, 1 },
+    bank    = { 96 / 256, 128 / 256, 0, 1 },
+    auction = { 128 / 256, 160 / 256, 0, 1 },
+}
+local ICONS_TOWN = AP.MEDIA .. "Images\\MarkerTown"
+
 function MK:Draw()
     for _, p in ipairs(pool) do p:Hide() end
     if not (WorldMapButton and AP.db and all) then return end
@@ -158,9 +170,11 @@ function MK:Draw()
     if onContinent then
         if not AP.db.continentMarkers then return end
         for _, m in ipairs(all) do
-            local r = m.cont == c and not m.town and AtlasPlus_ZoneRects[m.zone]
-            if r and self:Visible(m) then
-                list[#list + 1] = { m = m, x = r[2] + m.x * r[4], y = r[3] + m.y * r[5] }
+            if not m.town then
+                local r = m.cont == c and AtlasPlus_ZoneRects[m.zone]
+                if r and self:Visible(m) then
+                    list[#list + 1] = { m = m, x = r[2] + m.x * r[4], y = r[3] + m.y * r[5] }
+                end
             end
         end
     else
@@ -170,6 +184,7 @@ function MK:Draw()
         end
     end
     local scale = (AP.db.pinScale or 1) * (onContinent and 0.75 or 1)
+    local townScale = (AP.db.townScale or 1)
     local n = 0
     for _, e in ipairs(list) do
         local m = e.m
@@ -177,16 +192,17 @@ function MK:Draw()
             n = n + 1
             local p = Pin(n)
             p.m = m
-            local size = m.town and 16 * (AP.db.townScale or 1) or (m.key and 21 or 19) * scale
+            local size = (m.town and 14 * townScale or (m.key and 21 or 19) * scale)
             W.Size(p, size, size)
-            p:SetFrameLevel(WorldMapButton:GetFrameLevel() + 3)
-            if m.town then
-                p.tex:SetTexture("Interface\\Minimap\\Tracking\\" .. TOWN[m.type])
-                p.tex:SetTexCoord(0, 1, 0, 1)
-                p.ring:Hide()
-            elseif m.key then
+            p:SetFrameLevel(WorldMapButton:GetFrameLevel() + (m.town and 2 or 3))
+            if m.key then
                 p.tex:SetTexture(AP.MEDIA .. "Images\\InstanceIcons")
                 if m.type == "raid" then p.tex:SetTexCoord(37 / 64, 59 / 64, 5 / 32, 27 / 32) else p.tex:SetTexCoord(5 / 64, 27 / 64, 5 / 32, 27 / 32) end
+                p.ring:Hide()
+            elseif m.town then
+                local uv = TOWN_UV[m.type]
+                p.tex:SetTexture(ICONS_TOWN)
+                p.tex:SetTexCoord(uv[1], uv[2], uv[3], uv[4])
                 p.ring:Hide()
             else
                 local s = SLOT[m.type]
@@ -196,7 +212,7 @@ function MK:Draw()
                 p.ring:SetVertexColor(fc[1], fc[2], fc[3])
                 p.ring:Show()
             end
-            p.px, p.py, p.size, p.town = e.x / 100 * MAP_W, e.y / 100 * MAP_H, size, m.town
+            p.px, p.py, p.size = e.x / 100 * MAP_W, e.y / 100 * MAP_H, size
             p:Show()
         end
     end
@@ -205,9 +221,8 @@ function MK:Draw()
     for i = 1, n do
         local p = pool[i]
         local g
-        if p.town then g = { x = p.px, y = p.py, town = true }; groups[#groups + 1] = g end   -- town markers stay exactly in place
-        for _, grp in ipairs(p.town and {} or groups) do
-            if not grp.town and math.abs(grp.x - p.px) < p.size and math.abs(grp.y - p.py) < p.size then g = grp break end
+        for _, grp in ipairs(groups) do
+            if math.abs(grp.x - p.px) < p.size and math.abs(grp.y - p.py) < p.size then g = grp break end
         end
         if not g then g = { x = p.px, y = p.py }; groups[#groups + 1] = g end
         g[#g + 1] = p
@@ -281,15 +296,15 @@ end
 ---------------------------------------------------------------------------
 function MK:FilterMenu(btn)
     local db = AP.db
-    local menu = { { text = "Show on the map", isTitle = true, notCheckable = true } }
+    local menu = { { text = L["Show on the map"], isTitle = true, notCheckable = true } }
     for _, t in ipairs(MK.TYPES) do
         local key = t.key
-        if key == "flight" then menu[#menu + 1] = { text = "In towns", isTitle = true, notCheckable = true } end
+        if key == "flight" then menu[#menu + 1] = { text = L["In towns"], isTitle = true, notCheckable = true } end
         menu[#menu + 1] = { text = t.label, checked = db.markers[key] and true or false, keepShownOnClick = true,
             func = function() db.markers[key] = not db.markers[key]; MK:Refresh() end }
     end
-    menu[#menu + 1] = { text = "Transports, portals, towns", isTitle = true, notCheckable = true }
-    menu[#menu + 1] = { text = "Only my faction's", checked = db.myFactionOnly and true or false, keepShownOnClick = true,
+    menu[#menu + 1] = { text = L["Transports, portals, towns"], isTitle = true, notCheckable = true }
+    menu[#menu + 1] = { text = L["Only my faction's"], checked = db.myFactionOnly and true or false, keepShownOnClick = true,
         func = function() db.myFactionOnly = not db.myFactionOnly; MK:Refresh() end }
     W.ShowMenu(menu, btn)
 end
@@ -339,7 +354,7 @@ function MK:CreateFind(parent, holder)
 
     local title = W.Text(f, "GameFontNormal")
     title:SetPoint("TOPLEFT", 10, -9)
-    title:SetText(AP.ACCENT .. "Find on the map|r")
+    title:SetText(AP.ACCENT .. L["Find on the map"] .. "|r")
     local close = W.Button(f, "X", 22, 18)
     close:SetPoint("TOPRIGHT", -6, -6)
     close:SetScript("OnClick", function() f:Hide() end)
@@ -373,14 +388,14 @@ function MK:CreateFind(parent, holder)
         if MK.findText then MK.findText = nil; MK.findSearch:SetText("") end
         MK:FillFind()
     end)
-    Row(self.typeBtns, { { "all", "All" }, { "dungeon", "Dungeons" }, { "raid", "Raids" }, { "worldboss", "Bosses" } }, -52, 77,
+    Row(self.typeBtns, { { "all", L["All"] }, { "dungeon", L["Dungeons"] }, { "raid", L["Raids"] }, { "worldboss", L["Bosses"] } }, -52, 77,
         function(k) MK.findType = k; MK:FillFind() end)
-    Row(self.typeBtns, { { "boat", "Boats" }, { "zepp", "Zeppelins" }, { "tram", "Tram" }, { "portal", "Portals" } }, -74, 77,
+    Row(self.typeBtns, { { "boat", L["Boats"] }, { "zepp", L["Zeppelins"] }, { "tram", L["Tram"] }, { "portal", L["Portals"] } }, -74, 77,
         function(k) MK.findType = k; MK:FillFind() end)
-    Row(self.typeBtns, { { "flight", "Flights" }, { "inn", "Inns" }, { "bank", "Banks" }, { "auction", "Auction" }, { "mail", "Mail" } }, -96, 60,
+    Row(self.typeBtns, { { "flight", L["Flights"] }, { "inn", L["Inns"] }, { "bank", L["Banks"] }, { "auction", L["Auction"] }, { "mail", L["Mail"] } }, -96, 60,
         function(k) MK.findType = k; MK:FillFind() end)
 
-    local search = W.EditBox(f, 314, 20, "Search a name or a zone...")
+    local search = W.EditBox(f, 314, 20, L["Search a name or a zone..."])
     search:SetPoint("TOPLEFT", 8, -120)
     search:SetScript("OnTextChanged", function(eb)
         local t = strtrim(eb:GetText() or "")
@@ -472,7 +487,7 @@ function MK:FillFind()
     for _, m in ipairs(pool) do
         if self.findType == "all" or m.type == self.findType then list[#list + 1] = m end
     end
-    self.findEmpty:SetText(#list == 0 and (self.findText and "Nothing found." or "Nothing on this continent.") or "")
+    self.findEmpty:SetText(#list == 0 and (self.findText and L["Nothing found."] or L["Nothing on this continent."]) or "")
     table.sort(list, function(a, b)
         if a.type ~= b.type and self.findType == "all" then return a.type < b.type end
         if (a.low or 0) ~= (b.low or 0) then return (a.low or 0) < (b.low or 0) end
