@@ -41,6 +41,12 @@ WV.Range = Range
 local function ShownZoneName()
     local c, z = GetCurrentMapContinent(), GetCurrentMapZone()
     if c and c > 0 and z and z > 0 then return (select(z, GetMapZones(c))) end
+    -- Dungeon / instance map (WDM-patch or native WotLK)
+    if c == -1 or (GetCurrentMapDungeonLevel and GetCurrentMapDungeonLevel() > 0) then
+        if WorldMapFrameAreaLabel and WorldMapFrameAreaLabel:GetText() and WorldMapFrameAreaLabel:GetText() ~= "" then
+            return WorldMapFrameAreaLabel:GetText():gsub(" |c%x+.*$", "")
+        end
+    end
 end
 
 -- level range, dungeons and raids, fishing skill of a zone
@@ -174,8 +180,11 @@ end
 
 -- same steps as the game's "Zoom out" button: zone > continent > world (Outland > cosmic)
 function WV:ZoomOut()
+    -- On dungeon / instance map (WDM-patch or WotLK): use engine ZoomOut() first to return to parent floor or parent zone
+    if (GetCurrentMapContinent() == -1 or (GetCurrentMapDungeonLevel and GetCurrentMapDungeonLevel() or 0) > 0) then
+        if ZoomOut and ZoomOut() then return end
+    end
     if WorldMapZoomOutButton_OnClick then WorldMapZoomOutButton_OnClick() return end
-    if (GetCurrentMapDungeonLevel and GetCurrentMapDungeonLevel() or 0) > 0 and ZoomOut() then return end
     local c, z = GetCurrentMapContinent(), GetCurrentMapZone()
     if z and z > 0 then SetMapZoom(c) elseif c and c > 0 then SetMapZoom(0) end
 end
@@ -206,12 +215,50 @@ end
 function WV:ZoneMenu(btn)
     local c = GetCurrentMapContinent()
     if not c or c < 1 then c = 1 end
-    local menu = { { text = (select(c, GetMapContinents())), isTitle = true, notCheckable = true } }
+    local contName = select(c, GetMapContinents()) or ""
+    local menu = { { text = contName, isTitle = true, notCheckable = true } }
     for i, name in ipairs({ GetMapZones(c) }) do
         local z = AtlasPlus_Zones[name]
         local r = Range(z)
         menu[#menu + 1] = { text = name .. (r and ("  " .. LevelColor(z[1], z[2]) .. r .. "|r") or ""), notCheckable = true,
             func = function() SetMapZoom(c, i) end }
+    end
+    -- Dungeons and raids of this continent (WDM-patch or native)
+    local insts = {}
+    if AtlasPlus_Zones then
+        for iname, z in pairs(AtlasPlus_Zones) do
+            if z[4] == "Instance" and z[3] == contName then
+                local mapID = AP:GetGameMapID(iname)
+                local avail = mapID and AP:IsGameMapAvailable(mapID)
+                insts[#insts + 1] = { name = iname, mapID = mapID, avail = avail, low = z[1] or 0, high = z[2] or 0 }
+            end
+        end
+    end
+    if #insts > 0 then
+        table.sort(insts, function(a, b)
+            if a.low ~= b.low then return a.low < b.low end
+            return a.name < b.name
+        end)
+        menu[#menu + 1] = { text = L["Dungeons & Raids"], isTitle = true, notCheckable = true }
+        for _, inst in ipairs(insts) do
+            local r = (inst.low > 0) and (inst.low == inst.high and tostring(inst.low) or (inst.low .. "-" .. inst.high))
+            local title = inst.name .. (r and ("  " .. LevelColor(inst.low, inst.high) .. r .. "|r") or "")
+            if not inst.avail then
+                title = title .. "  |cff888888[Atlas]|r"
+            end
+            menu[#menu + 1] = {
+                text = title,
+                notCheckable = true,
+                func = function()
+                    if inst.avail and inst.mapID then
+                        AP.WorldMap:OpenGameInstanceMap(inst.mapID)
+                    else
+                        local key = AP:KeyForZoneName(inst.name)
+                        if key then AP.UI:OpenInstance(key) end
+                    end
+                end,
+            }
+        end
     end
     W.ShowMenu(menu, btn)
 end
