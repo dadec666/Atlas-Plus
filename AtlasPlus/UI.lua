@@ -28,93 +28,101 @@ local function ListW() return math.max(LIST_MIN, math.min(LIST_MAX, AP.db.listW 
 --   e123 / g500 = sold for a cost / for copper, q123 = quest reward, p / f = emblem of the current / a later phase
 local function Parse(str)
     local list = {}
-    for entry in str:gmatch("[^,]+") do
-        local id, pct, flags = entry:match("^(%d+):([%d%.]+):?(.*)$")
+    for entry in (str or ""):gmatch("[^,]+") do
+        local id, pct, rest = entry:match("^(%d+):([%d%.e%-]+)(.*)$")
         if id then
-            local count, hm, phase, copper, cost, quest, lv
-            if flags and flags ~= "" then
-                for flag in flags:gmatch("[^:]+") do
-                    local x = flag:match("^x(%d+)$")
-                    local c = flag:match("^g(%d+)$")
-                    local e = flag:match("^e(%d+)$")
-                    local q = flag:match("^q(%d+)$")
-                    local l = flag:match("^l([%d%-]+)$")
-                    if x then count = tonumber(x)
-                    elseif flag == "h" then hm = true
-                    elseif flag == "p" then phase = "curr"
-                    elseif flag == "f" then phase = "future"
-                    elseif c then copper = tonumber(c)
-                    elseif e then cost = tonumber(e)
-                    elseif q then quest = tonumber(q)
-                    elseif l then lv = l end
-                end
+            local r = { id = tonumber(id), pct = tonumber(pct) or 0 }
+            for f in rest:gmatch("[^:]+") do
+                local c, v = f:sub(1, 1), f:sub(2)
+                if c == "h" then r.hm = true
+                elseif c == "x" then r.count = tonumber(v)
+                elseif c == "l" then r.lv = v
+                elseif c == "e" then r.cost = tonumber(v)
+                elseif c == "g" then r.copper = tonumber(v)
+                elseif c == "q" then r.quest = tonumber(v)
+                elseif c == "p" then r.phase = "now"
+                elseif c == "f" then r.phase = "later" end
             end
-            list[#list + 1] = {
-                id = tonumber(id), pct = tonumber(pct), count = count,
-                hm = hm, phase = phase, copper = copper, cost = cost, quest = quest, lv = lv,
-            }
+            list[#list + 1] = r
         end
     end
     return list
 end
 
--- loads a map's loot string on first use and saves the table in lootCache
-function UI:GetLoot(key)
-    local cached = self.lootCache[key]
-    if cached then return cached end
-    local raw = AtlasPlus_Loot[key]
-    if not raw then return nil end
-    local parsed = {}
-    for line, str in pairs(raw) do parsed[line] = Parse(str) end
-    self.lootCache[key] = parsed
-    return parsed
+-- prices: "12 [icon] 2 [icon]", copper as gold / silver / copper
+local function Coins(c)
+    local g, s, cp = math.floor(c / 10000), math.floor(c / 100) % 100, c % 100
+    local out = {}
+    if g > 0 then out[#out + 1] = g .. "|TInterface\\MoneyFrame\\UI-GoldIcon:0|t" end
+    if s > 0 then out[#out + 1] = s .. "|TInterface\\MoneyFrame\\UI-SilverIcon:0|t" end
+    if cp > 0 or #out == 0 then out[#out + 1] = cp .. "|TInterface\\MoneyFrame\\UI-CopperIcon:0|t" end
+    return table.concat(out, " ")
 end
-
-local function PctText(pct)
-    if not pct then return "" end
-    if pct >= 99.5 then return "100%" end
-    if pct >= 10 then return string.format("%.0f%%", pct) end
-    return string.format("%.1f%%", pct)
-end
-
-local function CostText(d)
-    if d.cost then
-        local c = AtlasPlus_Costs and AtlasPlus_Costs[d.cost]
-        if c and c.points then
-            local pts = c.points[1]
-            if pts then return pts[1] .. " " .. pts[2]:sub(1, 1) end
-        end
-    end
+local function CostParts(d)
+    local parts = {}
     if d.copper then
-        local g = math.floor(d.copper / 10000)
-        local s = math.floor((d.copper % 10000) / 100)
-        local c = d.copper % 100
-        local t = ""
-        if g > 0 then t = t .. g .. "|cffffd100g|r " end
-        if s > 0 or g > 0 then t = t .. s .. "|cffe6e6e6s|r " end
-        t = t .. c .. "|cffc78240c|r"
-        return t
+        if d.copper > 0 then parts[1] = { Coins(d.copper), L["Gold"] } end
+        return parts
     end
-    return ""
+    local c = d.cost and AtlasPlus_Costs[d.cost]
+    if not c then return parts end
+    if c[1] > 0 then
+        local fac = UnitFactionGroup("player") or "Alliance"
+        parts[#parts + 1] = { c[1] .. "|TInterface\\PVPFrame\\PVP-Currency-" .. fac .. ":0|t", L["Honor Points"] }
+    end
+    if c[2] > 0 then parts[#parts + 1] = { c[2] .. "|TInterface\\PVPFrame\\PVP-ArenaPoints-Icon:0|t", L["Arena Points"] } end
+    for i = 4, #c, 2 do
+        local name = AtlasPlus_Items[c[i]] and AtlasPlus_Items[c[i]][1] or GetItemInfo(c[i]) or ("item " .. c[i])
+        parts[#parts + 1] = { c[i + 1] .. "|T" .. (GetItemIcon(c[i]) or "Interface\\Icons\\INV_Misc_QuestionMark") .. ":0|t", name, c[i + 1] }
+    end
+    return parts, c[3]
+end
+local function CostText(d)
+    local out = {}
+    for _, p in ipairs((CostParts(d))) do out[#out + 1] = p[1] end
+    return #out > 0 and table.concat(out, " ") or "|cff888888free|r"
+end
+AP.CostText = CostText
+
+function UI:GetLoot(key, line, mode)
+    local ck = key .. ":" .. tostring(line) .. ":" .. tostring(mode)
+    if self.lootCache[ck] then return self.lootCache[ck] end
+    local m = AtlasPlus_Maps[key]
+    local str
+    if line == "trash" then
+        local t = m and m.mapID and AtlasPlus_Trash[m.mapID]
+        str = t and t[mode]
+    else
+        local l = AtlasPlus_Loot[key] and AtlasPlus_Loot[key][line]
+        str = l and l[mode]
+    end
+    local list = Parse(str)
+    self.lootCache[ck] = list
+    return list
 end
 
--- the name of an item from the cache, or queries the server for it
+local function HasLoot(key, line)
+    if line == "trash" then
+        local m = AtlasPlus_Maps[key]
+        return m and m.mapID and AtlasPlus_Trash[m.mapID] ~= nil
+    end
+    return AtlasPlus_Loot[key] and AtlasPlus_Loot[key][line] ~= nil
+end
+
 local function ItemInfo(id)
-    local name, link, quality, _, _, typ, sub, _, eq, _, _, _, _, _, _, _, _ = GetItemInfo(id)
-    local fac = AtlasPlus_Items and AtlasPlus_Items[id]
-    if not name then
-        GameTooltip:SetHyperlink("item:" .. id)
-        GameTooltip:Hide()
-        name, link, quality, _, _, typ, sub, _, eq = GetItemInfo(id)
+    local d = AtlasPlus_Items[id]
+    local name, link, q = GetItemInfo(id)
+    q = q or (d and d[2]) or 1
+    name = name or (d and d[1]) or ("item " .. id)
+    if not link then
+        link = (W.QUALITY_HEX[q] or "|cffffffff") .. "|Hitem:" .. id .. ":0:0:0:0:0:0:0:0|h[" .. name .. "]|h|r"
     end
-    return name or ("item " .. id), link, quality or 1, typ or "", sub or "", fac, eq
+    return name, link, q, d and d[3] or "", d and d[4] or 0, d and d[5]
 end
+AP.ItemInfo = ItemInfo
 
-local FACTION_TAG = { A = " |cff4a9eff[A]|r", H = " |cffff4a4a[H]|r" }
-
--- color code removed: "|cff112233Boss|r" -> "Boss"
 local function StripColor(s)
-    return (s:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""))
+    return (s or ""):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
 end
 
 local function LineTitle(key, line)
@@ -127,11 +135,9 @@ local function LineTitle(key, line)
 end
 
 ---------------------------------------------------------------------------
--- Main window
+-- Frame
 ---------------------------------------------------------------------------
 function UI:Create()
-    if self.frame then return end
-
     local f = CreateFrame("Frame", "AtlasPlusFrame", UIParent)
     self.frame = f
     W.Size(f, FRAME_W, FRAME_H)
@@ -155,27 +161,22 @@ function UI:Create()
     W.Backdrop(title, C.panel, C.panel)
     title:EnableMouse(true)
     title:RegisterForDrag("LeftButton")
-    title:SetScript("OnMouseDown", function()
-        if not AP.db.locked then
-            f:StartMoving()
-            f.isMoving = true
-        end
-    end)
-    title:SetScript("OnMouseUp", function()
-        if f.isMoving then
-            f:StopMovingOrSizing()
-            f.isMoving = nil
-            UI:SavePosition()
-        end
-    end)
-
+    title:SetScript("OnDragStart", function() if not AP.db.locked then f:StartMoving() end end)
+    title:SetScript("OnDragStop", function() f:StopMovingOrSizing(); UI:SavePosition(); AP.WorldMap:Layout() end)
+    local line = title:CreateTexture(nil, "BORDER")
+    line:SetTexture("Interface\\Buttons\\WHITE8X8")
+    line:SetVertexColor(unpack(C.accent))
+    line:SetAlpha(0.6)
+    line:SetHeight(1)
+    line:SetPoint("BOTTOMLEFT")
+    line:SetPoint("BOTTOMRIGHT")
     local icon = title:CreateTexture(nil, "ARTWORK")
-    W.Size(icon, 18, 18)
+    W.Size(icon, 20, 20)
     icon:SetPoint("LEFT", 8, 0)
     icon:SetTexture(ICON)
-
+    icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
     local tfs = W.Text(title, "GameFontNormal")
-    tfs:SetPoint("LEFT", icon, "RIGHT", 6, 0)
+    tfs:SetPoint("LEFT", icon, "RIGHT", 7, 0)
     tfs:SetText("|cffffffffAtlas Plus|r")
     local ver = W.Text(title, "GameFontDisableSmall")
     ver:SetPoint("LEFT", tfs, "RIGHT", 6, -1)
@@ -184,23 +185,19 @@ function UI:Create()
     local close = W.Button(title, "X", 26, 22)
     close:SetPoint("RIGHT", -4, 0)
     close:SetScript("OnClick", function() f:Hide() end)
+    local settings = W.Button(title, L["Settings"], 80, 22)
+    settings:SetPoint("RIGHT", close, "LEFT", -4, 0)
+    settings:SetScript("OnClick", function() UI:ToggleSettings() end)
+    self.settingsBtn = settings
 
-    local sett = W.Button(title, "O", 26, 22)
-    sett:SetPoint("RIGHT", close, "LEFT", -3, 0)
-    sett:SetScript("OnClick", function() UI:ShowSettings() end)
-    sett:SetScript("OnEnter", function(b) W.Tip(b, L["Settings"]) end)
-    sett:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    local search = W.EditBox(title, 230, 22, L["Search an instance, a boss or loot..."])
+    search:SetPoint("RIGHT", settings, "LEFT", -10, 0)
 
-    -- Search box
-    local search = W.EditBox(title, 240, 22)
-    search:SetPoint("RIGHT", sett, "LEFT", -12, 0)
-    search.placeholder:SetText(L["Search an instance, a boss or loot..."])
-
-    -- Tabs: World map / Atlas
-    local worldTab = W.Tab(title, L["World map"])
-    worldTab:SetPoint("LEFT", ver, "RIGHT", 14, 1)
-    worldTab:SetScript("OnClick", function() UI:ShowWorld() end)
-    local instTab = W.Tab(title, L["Atlas"])
+    -- pages
+    local worldTab = W.Button(title, L["World map"], 84, 22)
+    worldTab:SetPoint("LEFT", ver, "RIGHT", 18, 1)
+    worldTab:SetScript("OnClick", function() UI:BackToWorld() end)
+    local instTab = W.Button(title, L["Atlas"], 84, 22)
     instTab:SetPoint("LEFT", worldTab, "RIGHT", 4, 0)
     instTab:SetScript("OnClick", function() UI:OpenInstance(UI.mapKey or AP.db.lastMap) end)
     self.worldTab, self.instTab = worldTab, instTab
@@ -289,30 +286,25 @@ function UI:CreateGrip(f)
     g:SetScript("OnLeave", function() GameTooltip:Hide() end)
     g:SetScript("OnMouseDown", function(self)
         UI:SavePosition()
-        local scale = AP.db.scale or 1
-        local sx, sy = GetCursorPosition()
-        self:SetScript("OnUpdate", function()
-            local cx, cy = GetCursorPosition()
-            local dx = (cx - sx) / UIParent:GetEffectiveScale()
-            local dy = (sy - cy) / UIParent:GetEffectiveScale()
-            local d = (dx + dy) / 2
-            local curW = f:GetWidth() * scale
-            local targetW = math.max(650, math.min(1900, curW + d))
-            local newScale = math.max(0.6, math.min(1.5, targetW / f:GetWidth()))
-            newScale = math.floor(newScale * 40 + 0.5) / 40
-            if newScale ~= scale then
-                scale = newScale
-                AP.db.scale = scale
-                UI:ApplyLayout()
-            end
+        local ui = UIParent:GetEffectiveScale()
+        local x = GetCursorPosition() / ui
+        self.startX, self.startScale = x, AP.db.scale or 1
+        self.startW = FRAME_W * self.startScale
+        self:SetScript("OnUpdate", function(s)
+            -- button released elsewhere (or the window closed meanwhile): stop resizing
+            if not IsMouseButtonDown("LeftButton") then s:SetScript("OnUpdate", nil); UI:SavePosition() return end
+            local cx = GetCursorPosition() / ui
+            local w = math.max(FRAME_W * 0.5, math.min(FRAME_W * 1.6, s.startW + (cx - s.startX)))
+            AP.db.scale = math.floor(w / FRAME_W * 100 + 0.5) / 100
+            UI:ApplyLayout()
         end)
     end)
     g:SetScript("OnMouseUp", function(self) self:SetScript("OnUpdate", nil); UI:SavePosition() end)
-    g:SetScript("OnHide", function(self) self:SetScript("OnUpdate", nil) end)
+    g:SetScript("OnHide", function(self) if self:GetScript("OnUpdate") then self:SetScript("OnUpdate", nil); UI:SavePosition() end end)
 end
 
 ---------------------------------------------------------------------------
--- Left panel: instance list
+-- Instance list (left)
 ---------------------------------------------------------------------------
 local CAT_SHORT = {
     ["Wrath of the Lich King Dungeons"] = "Wrath Dungeons", ["Wrath of the Lich King Raids"] = "Wrath Raids",
@@ -332,76 +324,86 @@ function UI:CreateList(f)
     bar:SetWidth(8)
     bar:SetFrameLevel(panel:GetFrameLevel() + 5)
     local line = bar:CreateTexture(nil, "ARTWORK")
-    line:SetPoint("TOP", 0, 0); line:SetPoint("BOTTOM", 0, 0); line:SetWidth(1)
     line:SetTexture("Interface\\Buttons\\WHITE8X8")
-    line:SetVertexColor(0.25, 0.25, 0.25, 0.8)
-    local grip = bar:CreateTexture(nil, "OVERLAY")
-    W.Size(grip, 4, 18)
-    grip:SetPoint("CENTER", 0, 0)
-    grip:SetTexture("Interface\\Buttons\\WHITE8X8")
-    grip:SetVertexColor(0.5, 0.5, 0.5, 0.6)
-    bar:EnableMouse(true)
-    bar:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-    bar:SetScript("OnEnter", function(self)
-        grip:SetVertexColor(1, 0.82, 0, 0.9)
-        W.Tip(self, L["Drag: list wider or narrower"], L["Right-click: back to the first width"])
+    line:SetVertexColor(C.line[1], C.line[2], C.line[3], 0.6)
+    line:SetWidth(2)
+    line:SetPoint("TOP", 0, -4)
+    line:SetPoint("BOTTOM", 0, 4)
+    local dots = {}
+    for i = -1, 1 do
+        local d = bar:CreateTexture(nil, "OVERLAY")
+        d:SetTexture("Interface\\Buttons\\WHITE8X8")
+        d:SetVertexColor(C.line[1], C.line[2], C.line[3], 1)
+        W.Size(d, 4, 4)
+        d:SetPoint("CENTER", 0, i * 8)
+        dots[#dots + 1] = d
+    end
+    local function Paint(on)
+        local c = on and C.accent or C.line
+        line:SetVertexColor(c[1], c[2], c[3], on and 1 or 0.6)
+        for _, d in ipairs(dots) do d:SetVertexColor(c[1], c[2], c[3], 1) end
+    end
+    bar:SetScript("OnEnter", function(b)
+        Paint(true)
+        GameTooltip:SetOwner(b, "ANCHOR_RIGHT")
+        GameTooltip:AddLine(L["Drag: list wider or narrower"], 1, 1, 1)
+        GameTooltip:AddLine(L["Right-click: back to the first width"], 0.7, 0.7, 0.7)
+        GameTooltip:Show()
     end)
-    bar:SetScript("OnLeave", function() grip:SetVertexColor(0.5, 0.5, 0.5, 0.6); GameTooltip:Hide() end)
-    bar:SetScript("OnClick", function(_, btn) if btn == "RightButton" then UI:SetListWidth(LIST_W) end end)
-    bar:SetScript("OnMouseDown", function(self, btn)
-        if btn ~= "LeftButton" then return end
-        local startX = GetCursorPosition() / UIParent:GetEffectiveScale()
-        local startW = panel:GetWidth()
-        self:SetScript("OnUpdate", function()
-            local curX = GetCursorPosition() / UIParent:GetEffectiveScale()
-            local dx = (curX - startX) / (AP.db.scale or 1)
-            UI:SetListWidth(startW + dx)
+    bar:SetScript("OnLeave", function(b) if not b.dragging then Paint(false) end GameTooltip:Hide() end)
+    bar:RegisterForClicks("RightButtonUp")
+    bar:SetScript("OnClick", function() UI:SetListWidth(LIST_W) end)
+    bar:SetScript("OnMouseDown", function(b, button)
+        if button ~= "LeftButton" then return end
+        b.dragging = true
+        b.x0, b.w0 = GetCursorPosition(), ListW()
+        b.sc = b:GetEffectiveScale()
+        b:SetScript("OnUpdate", function(s)
+            local x = GetCursorPosition()
+            UI:SetListWidth(s.w0 + (x - s.x0) / s.sc)
         end)
     end)
-    bar:SetScript("OnMouseUp", function(self) self:SetScript("OnUpdate", nil) end)
-    bar:SetScript("OnHide", function(self) self:SetScript("OnUpdate", nil) end)
-    self.listSplitter = bar
+    local function StopDrag(b)
+        if not b.dragging then return end
+        b.dragging = nil
+        b:SetScript("OnUpdate", nil)
+        if not b:IsMouseOver() then Paint(false) end
+    end
+    bar:SetScript("OnMouseUp", StopDrag)
+    bar:SetScript("OnHide", StopDrag)
+    self.listBar = bar
 
-    local sf = CreateFrame("ScrollFrame", "AtlasPlusListScroll", panel, "FauxScrollFrameTemplate")
-    sf:SetPoint("TOPLEFT", 0, -2)
-    sf:SetPoint("BOTTOMRIGHT", -22, 2)
-    sf:SetScript("OnVerticalScroll", function(self, off)
-        FauxScrollFrame_OnVerticalScroll(self, off, LIST_ROW_H, function() UI:RefreshList() end)
-    end)
-    self.listScroll = sf
-
-    local rows = math.floor((MAP_S - 4) / LIST_ROW_H)
-    for i = 1, rows do
-        local r = CreateFrame("Button", nil, panel)
-        r:SetHeight(LIST_ROW_H)
-        r:SetPoint("TOPLEFT", panel, "TOPLEFT", 2, -2 - ((i - 1) * LIST_ROW_H))
-        r:SetPoint("RIGHT", panel, "RIGHT", -22, 0)
-        local sel = r:CreateTexture(nil, "BACKGROUND")
-        sel:SetAllPoints()
-        sel:SetTexture("Interface\\Buttons\\WHITE8X8")
-        sel:SetVertexColor(1, 0.82, 0, 0.18)
-        sel:Hide()
-        r.sel = sel
-        local hl = r:CreateTexture(nil, "HIGHLIGHT")
+    local maxRows = math.floor((math.max(self.worldH, MAP_S + 2) - 4) / LIST_ROW_H)
+    self.listVisible = math.floor((MAP_S + 2 - 4) / LIST_ROW_H)
+    for i = 1, maxRows do
+        local row = CreateFrame("Button", nil, panel)
+        row:SetHeight(LIST_ROW_H)
+        row:SetPoint("TOPLEFT", 1, -2 - (i - 1) * LIST_ROW_H)
+        row:SetPoint("RIGHT", panel, "RIGHT", -14, 0)
+        local hl = row:CreateTexture(nil, "HIGHLIGHT")
         hl:SetAllPoints()
-        hl:SetTexture("Interface\\Buttons\\WHITE8X8")
-        hl:SetVertexColor(1, 1, 1, 0.08)
-        local fs = W.Text(r, "GameFontHighlightSmall")
-        fs:SetPoint("LEFT", 4, 0)
-        fs:SetPoint("RIGHT", -4, 0)
+        hl:SetTexture(C.accent[1], C.accent[2], C.accent[3], 0.12)
+        local sel = row:CreateTexture(nil, "BACKGROUND")
+        sel:SetAllPoints()
+        sel:SetTexture(C.accent[1], C.accent[2], C.accent[3], 0.25)
+        sel:Hide()
+        row.sel = sel
+        local fs = W.Text(row, "GameFontHighlightSmall")
+        fs:SetPoint("LEFT", 6, 0)
+        fs:SetPoint("RIGHT", -2, 0)
         fs:SetJustifyH("LEFT")
-        r.fs = fs
-        r:SetScript("OnClick", function(self)
-            local e = self.entry
+        row.fs = fs
+        row:SetScript("OnClick", function(r)
+            local e = r.entry
             if not e then return end
             if e.cat then
-                AP.db.collapsed[e.cat] = not AP.db.collapsed[e.cat]
+                AP.db.collapsed[e.cat] = not AP.db.collapsed[e.cat] or nil
                 UI:RefreshList()
             else
-                UI:SelectMap(e.key)
+                UI:OpenInstance(e.key)
             end
         end)
-        r:SetScript("OnEnter", function(r)
+        row:SetScript("OnEnter", function(r)
             local e = r.entry
             if not (e and e.key) then return end
             local m = AtlasPlus_Maps[e.key]
@@ -411,29 +413,21 @@ function UI:CreateList(f)
             if m.loc then GameTooltip:AddLine(m.loc, 0.8, 0.8, 0.8) end
             GameTooltip:Show()
         end)
-        r:SetScript("OnLeave", function() GameTooltip:Hide() end)
-        self.listRows[i] = r
+        row:SetScript("OnLeave", function() GameTooltip:Hide() end)
+        self.listRows[i] = row
     end
+    local sf = CreateFrame("ScrollFrame", "AtlasPlusListScroll", panel, "FauxScrollFrameTemplate")
+    sf:SetPoint("TOPLEFT", 0, -2)
+    sf:SetPoint("BOTTOMRIGHT", -14, 2)
+    sf:SetScript("OnVerticalScroll", function(s, offset)
+        FauxScrollFrame_OnVerticalScroll(s, offset, LIST_ROW_H, function() UI:RefreshList() end)
+    end)
+    W.FlatScroll(sf)
+    self.listScroll = sf
 end
 
--- the list of rows currently shown: categories with their instances indented under them
 function UI:ListEntries()
     local out = {}
-    local filter = self.listFilter
-    if filter and filter ~= "" then
-        for _, cat in ipairs(AP.CATEGORIES) do
-            local keys = AP.byCategory[cat]
-            if keys then
-                for _, k in ipairs(keys) do
-                    local m = AtlasPlus_Maps[k]
-                    if m and (strlower(m.name):find(filter, 1, true) or strlower(m.full or ""):find(filter, 1, true)) then
-                        out[#out + 1] = { key = k }
-                    end
-                end
-            end
-        end
-        return out
-    end
     for _, cat in ipairs(AP.CATEGORIES) do
         local keys = AP.byCategory[cat]
         if keys and #keys > 0 then
@@ -487,46 +481,157 @@ function UI:RefreshList()
     end
 end
 
+-- scroll the list so the selected map is visible (and its category open)
+function UI:RevealInList(key)
+    local cat = AtlasPlus_Maps[key].cat
+    if AP.db.collapsed[cat] then self:RefreshList() return end
+    local entries = self:ListEntries()
+    for i, e in ipairs(entries) do
+        if e.key == key then
+            local off = FauxScrollFrame_GetOffset(self.listScroll)
+            if i <= off or i > off + self.listVisible then
+                local newOff = math.max(0, math.min(i - 4, #entries - self.listVisible))
+                FauxScrollFrame_SetOffset(self.listScroll, newOff)
+                self.listScroll:SetVerticalScroll(newOff * LIST_ROW_H)
+            end
+            break
+        end
+    end
+    self:RefreshList()
+end
+
 ---------------------------------------------------------------------------
--- Map: 512x512 tile
+-- Map (center)
 ---------------------------------------------------------------------------
 function UI:CreateMap(f)
     local holder = CreateFrame("Frame", nil, f)
     holder:SetPoint("TOPLEFT", self.listPanel, "TOPRIGHT", 10, 0)
-    W.Size(holder, MAP_S, MAP_S)
-    W.Backdrop(holder, C.panel)
-    self.mapHolder = holder
-
+    W.Size(holder, MAP_S + 2, MAP_S + 2)
+    W.Backdrop(holder, C.inset)
     local tex = holder:CreateTexture(nil, "ARTWORK")
-    tex:SetAllPoints()
+    tex:SetPoint("TOPLEFT", 1, -1)
+    W.Size(tex, MAP_S, MAP_S)
     self.mapTex = tex
+    self.mapHolder = holder
+    -- pages without a map (world drops, events, vendors): what the page is about
+    local info = CreateFrame("Frame", nil, holder)
+    info:SetAllPoints()
+    local big = info:CreateTexture(nil, "ARTWORK")
+    W.Size(big, 64, 64)
+    big:SetPoint("TOP", 0, -120)
+    big:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+    local title = W.Text(info, "GameFontNormalLarge")
+    title:SetPoint("TOP", big, "BOTTOM", 0, -14)
+    title:SetWidth(MAP_S - 60)
+    local body = W.Text(info, "GameFontHighlight")
+    body:SetPoint("TOP", title, "BOTTOM", 0, -12)
+    body:SetWidth(MAP_S - 80)
+    body:SetSpacing(3)
+    local count = W.Text(info, "GameFontDisable")
+    count:SetPoint("TOP", body, "BOTTOM", 0, -14)
+    count:SetWidth(MAP_S - 80)
+    info.icon, info.title, info.body, info.count = big, title, body, count
+    info:Hide()
+    self.mapInfo = info
+    -- right-click on the instance map: back to the world map
+    holder:EnableMouse(true)
+    holder:SetScript("OnMouseUp", function(_, button) if button == "RightButton" then UI:BackToWorld() end end)
+    self.listPanel:SetHeight(MAP_S + 2)
 end
 
 ---------------------------------------------------------------------------
--- Right panel: header, mode buttons, bosses, loot, item search
+-- Right panel: header, modes, legend / loot / search rows
 ---------------------------------------------------------------------------
+local function CreateRow(parent, i)
+    local row = CreateFrame("Button", nil, parent)
+    row:SetHeight(ROW_H)
+    row:SetPoint("TOPLEFT", 1, -1 - (i - 1) * ROW_H)
+    row:SetPoint("RIGHT", parent, "RIGHT", -15, 0)
+    row:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    local stripe = row:CreateTexture(nil, "BACKGROUND")
+    stripe:SetAllPoints()
+    stripe:SetTexture(1, 1, 1, (i % 2 == 0) and 0.025 or 0)
+    local hl = row:CreateTexture(nil, "HIGHLIGHT")
+    hl:SetAllPoints()
+    hl:SetTexture(C.accent[1], C.accent[2], C.accent[3], 0.12)
+    row.hl = hl
+    local icon = row:CreateTexture(nil, "ARTWORK")
+    W.Size(icon, 16, 16)
+    icon:SetPoint("LEFT", 5, 0)
+    icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+    row.icon = icon
+    local left = W.Text(row, "GameFontHighlightSmall")
+    left:SetHeight(ROW_H)
+    left:SetJustifyH("LEFT")
+    row.left = left
+    local right = W.Text(row, "GameFontHighlightSmall")
+    right:SetPoint("RIGHT", -6, 0)
+    right:SetHeight(ROW_H)
+    right:SetJustifyH("RIGHT")
+    row.right = right
+    local mid = W.Text(row, "GameFontDisableSmall")
+    mid:SetHeight(ROW_H)
+    mid:SetJustifyH("LEFT")
+    row.mid = mid
+    row:SetScript("OnClick", function(r, button) UI:OnRowClick(r, button) end)
+    row:SetScript("OnEnter", function(r) UI:OnRowEnter(r) end)
+    row:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    return row
+end
+
+-- layout of one row: "legend" (text only), "item" (icon, name, type, chance), "result" (icon, name, where)
+local function LayoutRow(row, kind, width, rightW)
+    row.left:ClearAllPoints(); row.mid:ClearAllPoints()
+    if kind == "legend" or kind == "group" then
+        row.icon:Hide()
+        row.left:SetPoint("LEFT", 6, 0)
+        row.left:SetWidth(width - 60)
+        row.mid:Hide()
+        row.right:SetWidth(50)
+    elseif kind == "item" then
+        rightW = rightW or 44
+        row.icon:Show()
+        row.left:SetPoint("LEFT", 27, 0)
+        local nameW = math.floor((width - 27 - rightW - 2) * 0.58)
+        row.left:SetWidth(nameW)
+        row.mid:Show()
+        row.mid:SetPoint("LEFT", 27 + nameW + 6, 0)
+        row.mid:SetWidth(width - 27 - nameW - 6 - rightW - 6)
+        row.right:SetWidth(rightW)
+    else -- result
+        row.icon:Show()
+        row.left:SetPoint("LEFT", 27, 0)
+        local nameW = math.floor((width - 27 - 10) * 0.5)
+        row.left:SetWidth(nameW)
+        row.mid:Show()
+        row.mid:SetPoint("LEFT", 27 + nameW + 6, 0)
+        row.mid:SetWidth(width - 27 - nameW - 12)
+        row.right:SetWidth(1)
+    end
+end
+
 function UI:CreateRight(f)
     local panel = CreateFrame("Frame", nil, f)
     panel:SetPoint("TOPLEFT", self.mapHolder, "TOPRIGHT", 10, 0)
-    panel:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -10, 19)
-    W.Backdrop(panel, C.panel)
+    W.Size(panel, RIGHT_W, MAP_S + 2)
     self.right = panel
+    panel:EnableMouse(true)
+    panel:SetScript("OnMouseUp", function(_, button) if button == "RightButton" and UI.view == "loot" then UI:Back() end end)
 
-    -- Header (map name, info, location)
+    -- header
     local name = W.Text(panel, "GameFontNormalLarge")
-    name:SetPoint("TOPLEFT", 4, -4)
+    name:SetPoint("TOPLEFT", 4, -2)
     name:SetPoint("RIGHT", panel, "RIGHT", -4, 0)
     name:SetJustifyH("LEFT")
+    name:SetTextColor(1, 1, 1)
     self.hName = name
-
     local info = W.Text(panel, "GameFontHighlightSmall")
-    info:SetPoint("TOPLEFT", name, "BOTTOMLEFT", 0, -3)
+    info:SetPoint("TOPLEFT", name, "BOTTOMLEFT", 0, -4)
     info:SetPoint("RIGHT", panel, "RIGHT", -4, 0)
     info:SetJustifyH("LEFT")
     self.hInfo = info
-
     local loc = W.Text(panel, "GameFontDisableSmall")
-    loc:SetPoint("TOPLEFT", info, "BOTTOMLEFT", 0, -2)
+    loc:SetPoint("TOPLEFT", info, "BOTTOMLEFT", 0, -3)
     loc:SetPoint("RIGHT", panel, "RIGHT", -190, 0)
     loc:SetJustifyH("LEFT")
     self.hLoc = loc
@@ -534,28 +639,21 @@ function UI:CreateRight(f)
     ent:SetPoint("TOPRIGHT", panel, "TOPRIGHT", 0, -34)
     ent:SetScript("OnClick", function(b) UI:GoEntrance(b) end)
     self.entBtn = ent
-
-    local gameMapBtn = W.Button(panel, L["Game map"], 90, 18)
-    gameMapBtn:SetPoint("RIGHT", ent, "LEFT", -4, 0)
-    gameMapBtn:SetScript("OnClick", function()
+    local gm = W.Button(panel, L["Game map"], 90, 18)
+    gm:SetPoint("RIGHT", ent, "LEFT", -4, 0)
+    gm:SetScript("OnClick", function()
         local mapID = AP:GetGameMapID(UI.mapKey)
         if mapID and AP.WorldMap then
             AP.WorldMap:OpenGameInstanceMap(mapID)
         end
     end)
-    gameMapBtn:SetScript("OnEnter", function(b)
-        W.Tip(b, L["Game map"], L["Show the interactive game map for this dungeon (supports WDM-patch)."])
-    end)
-    gameMapBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
-    self.gameMapBtn = gameMapBtn
+    self.gameMapBtn = gm
 
-    -- Modes: 4 buttons on the right, top: Normal / Heroic / 10H / 25H
+    -- modes
     self.modeBtns = {}
     for i = 1, 4 do
-        local b = W.Tab(panel, "")
-        b:SetHeight(20)
-        if i == 1 then b:SetPoint("TOPRIGHT", panel, "TOPRIGHT", 0, -56)
-        else b:SetPoint("RIGHT", self.modeBtns[i - 1], "LEFT", -3, 0) end
+        local b = W.Button(panel, "", 60, 20)
+        if i == 1 then b:SetPoint("TOPLEFT", 0, -56) else b:SetPoint("LEFT", self.modeBtns[i - 1], "RIGHT", 4, 0) end
         b:SetScript("OnClick", function(btn) UI:SetMode(btn.mode) end)
         self.modeBtns[i] = b
     end
@@ -564,74 +662,89 @@ function UI:CreateRight(f)
     back:SetScript("OnClick", function() UI:Back() end)
     self.backBtn = back
 
-    -- Section title: "Bosses", "Loot: Kurinnaxx", "Search: 12 items"
+    -- sub title (boss name in loot view, result count in search)
     local sub = W.Text(panel, "GameFontNormal")
-    sub:SetPoint("TOPLEFT", 4, -60)
+    sub:SetPoint("TOPLEFT", 2, -82)
     sub:SetPoint("RIGHT", panel, "RIGHT", -4, 0)
     sub:SetJustifyH("LEFT")
     self.sub = sub
 
-    local div = panel:CreateTexture(nil, "ARTWORK")
-    div:SetPoint("TOPLEFT", 0, -78)
-    div:SetPoint("RIGHT", panel, "RIGHT", 0, 0)
-    div:SetHeight(1)
-    div:SetTexture("Interface\\Buttons\\WHITE8X8")
-    div:SetVertexColor(0.2, 0.2, 0.2, 0.8)
-
-    -- Rows: bosses, loot items, search results
-    local sf = CreateFrame("ScrollFrame", "AtlasPlusRowScroll", panel, "FauxScrollFrameTemplate")
-    sf:SetPoint("TOPLEFT", 0, -82)
-    sf:SetPoint("BOTTOMRIGHT", -22, 2)
-    sf:SetScript("OnVerticalScroll", function(self, off)
-        FauxScrollFrame_OnVerticalScroll(self, off, ROW_H, function() UI:RefreshRows() end)
+    -- rows
+    local list = CreateFrame("Frame", nil, panel)
+    list:SetPoint("TOPLEFT", 0, -100)
+    list:SetPoint("BOTTOMRIGHT", 0, 0)
+    W.Backdrop(list, C.panel)
+    self.rowPanel = list
+    for i = 1, ROWS do self.rows[i] = CreateRow(list, i) end
+    local sf = CreateFrame("ScrollFrame", "AtlasPlusRowScroll", list, "FauxScrollFrameTemplate")
+    sf:SetPoint("TOPLEFT", 0, -1)
+    sf:SetPoint("BOTTOMRIGHT", -15, 1)
+    sf:SetScript("OnVerticalScroll", function(s, offset)
+        FauxScrollFrame_OnVerticalScroll(s, offset, ROW_H, function() UI:RefreshRows() end)
     end)
+    W.FlatScroll(sf)
     self.rowScroll = sf
-
-    for i = 1, ROWS do
-        local r = CreateFrame("Button", nil, panel)
-        r:SetHeight(ROW_H)
-        r:SetPoint("TOPLEFT", panel, "TOPLEFT", 2, -82 - ((i - 1) * ROW_H))
-        r:SetPoint("RIGHT", panel, "RIGHT", -22, 0)
-        local hl = r:CreateTexture(nil, "HIGHLIGHT")
-        hl:SetAllPoints()
-        hl:SetTexture("Interface\\Buttons\\WHITE8X8")
-        hl:SetVertexColor(1, 1, 1, 0.08)
-        r.hl = hl
-
-        local icon = r:CreateTexture(nil, "ARTWORK")
-        W.Size(icon, 16, 16)
-        icon:SetPoint("LEFT", 4, 0)
-        r.icon = icon
-
-        local left = W.Text(r, "GameFontHighlightSmall")
-        left:SetPoint("LEFT", icon, "RIGHT", 4, 0)
-        left:SetJustifyH("LEFT")
-        r.left = left
-
-        local right = W.Text(r, "GameFontDisableSmall")
-        right:SetPoint("RIGHT", -4, 0)
-        right:SetJustifyH("RIGHT")
-        r.right = right
-
-        local mid = W.Text(r, "GameFontDisableSmall")
-        mid:SetPoint("RIGHT", right, "LEFT", -6, 0)
-        mid:SetJustifyH("RIGHT")
-        r.mid = mid
-
-        r:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-        r:SetScript("OnClick", function(self, btn) UI:OnRowClick(self, btn) end)
-        r:SetScript("OnEnter", function(self) UI:OnRowEnter(self) end)
-        r:SetScript("OnLeave", function() GameTooltip:Hide() end)
-        self.rows[i] = r
-    end
+    local empty = W.Text(list, "GameFontDisableSmall")
+    empty:SetPoint("CENTER")
+    empty:SetWidth(RIGHT_W - 40)
+    self.empty = empty
 end
 
 ---------------------------------------------------------------------------
--- Navigation & display
+-- Selection
 ---------------------------------------------------------------------------
+function UI:ModeFor(key)
+    local m = AtlasPlus_Maps[key]
+    if not (m and m.modes) then return nil end
+    local saved = AP.db.modes[key]
+    for _, md in ipairs(m.modes) do if md == saved then return saved end end
+    return m.modes[1]
+end
+
+function UI:SelectMap(key, keepView)
+    local m = AtlasPlus_Maps[key]
+    if not m then return end
+    self.mapKey = key
+    AP.db.lastMap = key
+    self.mode = self:ModeFor(key)
+    if not keepView then
+        self.view, self.lootLine = "legend", nil
+        if self.searchBox:GetText() ~= "" then self.searchBox:SetText("") end
+    end
+    if m.nomap then
+        self.mapTex:Hide()
+        local info = self.mapInfo
+        info.icon:SetTexture(AP.CAT_ICON[m.cat] or ICON)
+        info.title:SetText(L[m.full or m.name] or (m.full or m.name))
+        info.body:SetText(m.info or "")
+        local n, items = 0, 0
+        for _, modes in pairs(AtlasPlus_Loot[key] or {}) do
+            n = n + 1
+            for _, str in pairs(modes) do for _ in str:gmatch("[^,]+") do items = items + 1 end end
+        end
+        local nLists = AP.FormatLists(n)
+        local nItems = AP.FormatItems(items)
+        info.count:SetText(nLists .. ", " .. nItems)
+        info:Show()
+    else
+        self.mapInfo:Hide()
+        self.mapTex:Show()
+        self.mapTex:SetTexture(AP.MAPS .. key)
+    end
+    FauxScrollFrame_SetOffset(self.rowScroll, 0)
+    self.rowScroll:SetVerticalScroll(0)
+    self:RevealInList(key)
+    self:RefreshRight()
+end
+
+-- pages: the instance map (list + map + legend) or the world map (list + world map)
 function UI:SetPage(page)
     self.page = page
     local inst = page == "instance"
+    local h = inst and (MAP_S + 2) or self.worldH
+    self.frame:SetHeight(FRAME_H + h - (MAP_S + 2))
+    self.frame:SetWidth(inst and (FRAME_W + ListW() - LIST_W) or self.worldW)
+    self.listPanel:SetHeight(MAP_S + 2)
     self.listVisible = math.floor((MAP_S + 2 - 4) / LIST_ROW_H)
     if inst then
         AP.WorldMap:Detach()
@@ -678,76 +791,32 @@ function UI:OpenLoot(line)
 end
 
 function UI:Back()
-    if self.view == "loot" then
-        self.view, self.lootLine = "legend", nil
-        FauxScrollFrame_SetOffset(self.rowScroll, 0)
-        self.rowScroll:SetVerticalScroll(0)
-        self:RefreshRight()
-    elseif self.view == "search" then
-        self.searchBox:SetText("")
-        self:OnSearchChanged("")
+    if self.view == "loot" and self.fromSearch then
+        self.view = "search"
+        self.fromSearch = nil
+    else
+        self.view = "legend"
+        self.fromSearch = nil
     end
-end
-
-function UI:SelectMap(key, keepView)
-    if not key or not AtlasPlus_Maps[key] then return end
-    self.mapKey = key
-    AP.db.lastMap = key
-    local m = AtlasPlus_Maps[key]
-
-    -- Map tile (custom images: Atlas/Images/..., game tiles: original game paths)
-    local texPath = m.custom and (AP.MEDIA .. "Images\\" .. m.custom) or ("Interface\\WorldMap\\" .. (m.file or key) .. "\\" .. (m.file or key))
-    self.mapTex:SetTexture(texPath)
-    if not keepView then self.view, self.lootLine = "legend", nil end
-
-    -- Mode: picks the last one used for this map, or the first available one
-    local loot = self:GetLoot(key)
-    local avail = {}
-    if loot then for mode, _ in pairs(loot) do avail[mode] = true end end
-    local mode = AP.db.modes[key]
-    if not (mode and avail[mode]) then
-        for _, def in ipairs(AP.MODE_ORDER) do if avail[def] then mode = def break end end
-    end
-    self.mode = mode or "norm"
-    self.modesAvailable = avail
-
     FauxScrollFrame_SetOffset(self.rowScroll, 0)
     self.rowScroll:SetVerticalScroll(0)
     self:RefreshRight()
-    self:RefreshList()
-
-    -- bottom bar: total items of this map
-    local info = self.foot
-    if loot then
-        local n, items = 0, 0
-        for line, modes in pairs(loot) do
-            n = n + 1
-            for _, str in pairs(modes) do for _ in str:gmatch("[^,]+") do items = items + 1 end end
-        end
-        local nLists = AP.FormatLists(n)
-        local nItems = AP.FormatItems(items)
-        info.count:SetText(nLists .. \", \" .. nItems)
-        info:Show()
-    else
-        info:Hide()
-    end
 end
 
--- the Entrance button: links between an instance and its entrance map (Caverns of Time, Blackrock Mountain...)
 function UI:GoEntrance(btn)
-    local key = self.mapKey
     local A = AtlasPlus_Assoc
-    if A.instToEnt[key] then
-        self:SelectMap(A.instToEnt[key])
-    elseif A.entToInst[key] then
-        local insts = A.entToInst[key]
-        if #insts == 1 then self:SelectMap(insts[1]) return end
-        local menu = {}
+    local key = self.mapKey
+    local ents = A.instToEnt[key]
+    if ents and ents[1] then self:SelectMap(ents[1]) return end
+    -- entrance map: back to an instance of it
+    local insts = A.entToInst[key]
+    if insts then
+        local menu = { { text = L["Instances"], isTitle = true, notCheckable = true } }
         for _, k in ipairs(insts) do
             local m = AtlasPlus_Maps[k]
             if m then menu[#menu + 1] = { text = m.name, notCheckable = true, func = function() UI:SelectMap(k) end } end
         end
-        W.Menu(btn, menu)
+        W.ShowMenu(menu, btn)
     end
 end
 
@@ -781,8 +850,9 @@ function UI:RefreshHeader()
 
     if self.gameMapBtn then
         local mapID = AP:GetGameMapID(key)
-        if mapID then
+        if mapID and AP:IsGameMapAvailable(mapID) then
             self.gameMapBtn:Show()
+            self.gameMapBtn.tip = L["Show the interactive game map for this dungeon (supports WDM-patch)."]
         else
             self.gameMapBtn:Hide()
         end
@@ -790,55 +860,115 @@ function UI:RefreshHeader()
 end
 
 function UI:RefreshModes()
-    local avail = self.modesAvailable or {}
-    local shown = {}
-    for _, mode in ipairs(AP.MODE_ORDER) do if avail[mode] then shown[#shown + 1] = mode end end
+    local m = AtlasPlus_Maps[self.mapKey]
+    local modes = (self.view ~= "search") and m.modes or nil
+    local show = modes and #modes > 1 and AtlasPlus_Loot[self.mapKey] ~= nil
     for i, b in ipairs(self.modeBtns) do
-        local mode = shown[i]
-        if mode and self.view ~= "search" and not (self.view == "legend" and #shown <= 1) then
-            b:SetText(AP.MODE_LABEL[mode] or mode)
-            b.mode = mode
-            b:SetSelected(mode == self.mode)
+        local md = show and modes[i]
+        if md then
+            b.mode = md
+            b:SetText(AP.MODE_LABEL[md] or md)
+            b:SetWidth((md == "N" or md == "H") and 64 or (#md > 2 and 80 or 44))
+            b:SetSelected(md == self.mode)
             b:Show()
         else
             b:Hide()
         end
     end
-    self.backBtn:SetShown(self.view == "loot")
+    if self.view == "legend" then self.backBtn:Hide() else self.backBtn:Show() end
 end
 
--- the rows of the current view: legend of the map, loot items of a boss, or search results
-function UI:GetRows()
-    local rows = {}
-    local m = AtlasPlus_Maps[self.mapKey]
-    if self.view == "loot" then
-        local loot = self:GetLoot(self.mapKey)
-        local list = loot and loot[self.lootLine] and loot[self.lootLine][self.mode]
-        if list then
-            for _, d in ipairs(list) do
-                if not (AP.db.classFilter and AP.db.myClass and not AP:ItemForClass(d.id, AP.db.myClass)) then
-                    rows[#rows + 1] = { kind = "item", id = d.id, pct = d.pct, count = d.count, hm = d.hm, cost = d.cost, copper = d.copper, quest = d.quest, lv = d.lv }
+-- class loot: folded lists per class (like the instance list)
+local CLASS_BITS = {
+    { "WARRIOR", 1 }, { "PALADIN", 2 }, { "HUNTER", 4 }, { "ROGUE", 8 }, { "PRIEST", 16 },
+    { "DEATHKNIGHT", 32 }, { "SHAMAN", 64 }, { "MAGE", 128 }, { "WARLOCK", 256 }, { "DRUID", 1024 },
+}
+local CLASS_LABEL = {
+    WARRIOR = L["Warrior"], PALADIN = L["Paladin"], HUNTER = L["Hunter"], ROGUE = L["Rogue"],
+    PRIEST = L["Priest"], DEATHKNIGHT = L["Death Knight"], SHAMAN = L["Shaman"], MAGE = L["Mage"],
+    WARLOCK = L["Warlock"], DRUID = L["Druid"]
+}
+local CLASS_GROUP_MIN = 6      -- fewer class items than this: they stay in the main list
+
+local function ClassMask(id)
+    local d = AtlasPlus_Items[id]
+    return d and d[6] or 0
+end
+
+function UI:GroupOpen(gk)
+    self.groupOpen = self.groupOpen or {}
+    local v = self.groupOpen[gk]
+    if v == nil then
+        -- your own class starts open
+        local _, mine = UnitClass("player")
+        return gk == "class:" .. (mine or "")
+    end
+    return v
+end
+
+function UI:ToggleGroup(gk)
+    self.groupOpen = self.groupOpen or {}
+    self.groupOpen[gk] = not self:GroupOpen(gk)
+    self:RefreshRight()
+end
+
+function UI:LootRows(list)
+    local rows, main, byClass, nClass = {}, {}, {}, 0
+    for _, r in ipairs(list) do
+        local cm = ClassMask(r.id)
+        if cm > 0 then
+            nClass = nClass + 1
+            for _, c in ipairs(CLASS_BITS) do
+                if bit.band(cm, c[2]) ~= 0 then
+                    byClass[c[1]] = byClass[c[1]] or {}
+                    table.insert(byClass[c[1]], r)
                 end
             end
+        else
+            main[#main + 1] = r
         end
-    elseif self.view == "search" then
-        return self.results or {}
-    else
-        local loot = self:GetLoot(self.mapKey)
-        local curLoot = loot and loot[self.mode]
-        local lines = m.lines or {}
-        local col = m.legendColor and W.LEGEND_COLOR[m.legendColor]
-        for line, data in ipairs(lines) do
-            local hasLoot = curLoot and curLoot[line] ~= nil
-            local t = data[1] or ""
+    end
+    local function item(r)
+        return { kind = "item", id = r.id, pct = r.pct, hm = r.hm, count = r.count, lv = r.lv, cost = r.cost,
+                 copper = r.copper, quest = r.quest, phase = r.phase }
+    end
+    if nClass < CLASS_GROUP_MIN then
+        -- a few class items: in the main list, in drop order
+        main = {}
+        for _, r in ipairs(list) do main[#main + 1] = r end
+        byClass = {}
+    end
+    for _, r in ipairs(main) do rows[#rows + 1] = item(r) end
+    for _, c in ipairs(CLASS_BITS) do
+        local l = byClass[c[1]]
+        if l then
+            local gk = "class:" .. c[1]
+            local open = self:GroupOpen(gk)
+            local col = RAID_CLASS_COLORS and RAID_CLASS_COLORS[c[1]]
             local hex = col and string.format("|cff%02x%02x%02x", col.r * 255, col.g * 255, col.b * 255) or "|cffffffff"
-            local letter, rest = t:match("^(%w+'?%)%s*)(.+)$")
-            if letter then t = hex .. letter .. "|r" .. rest else t = hex .. t .. "|r" end
-            rows[#rows + 1] = { kind = "legend", line = line, text = t, loot = hasLoot, type = data[2], id = data[3] }
+            rows[#rows + 1] = { kind = "group", gk = gk, open = open,
+                text = (open and "- " or "+ ") .. hex .. CLASS_LABEL[c[1]] .. "|r |cff888888(" .. #l .. ")|r" }
+            if open then for _, r in ipairs(l) do rows[#rows + 1] = item(r) end end
         end
-        if curLoot and curLoot.trash then
-            rows[#rows + 1] = { kind = "legend", line = "trash", text = "|cff888888'|r " .. L["Trash mobs"], loot = true }
+    end
+    return rows
+end
+
+-- rows for the current view
+function UI:BuildRows()
+    local key, rows = self.mapKey, {}
+    local m = AtlasPlus_Maps[key]
+    if self.view == "legend" then
+        for i, l in ipairs(m.lines) do
+            rows[#rows + 1] = { kind = "legend", line = i, text = l[1], type = l[2], id = l[3], loot = HasLoot(key, i) }
         end
+        if m.cat ~= "Entrances" and m.cat ~= "Dungeon Locations" and HasLoot(key, "trash") then
+            rows[#rows + 1] = { kind = "legend", line = "trash", text = "|cff999999" .. L["Trash mobs"] .. "|r", loot = true }
+        end
+    elseif self.view == "loot" then
+        rows = self:LootRows(self:GetLoot(key, self.lootLine, self.mode))
+    elseif self.view == "search" then
+        rows = self.results or {}
     end
     return rows
 end
@@ -850,7 +980,7 @@ function UI:RefreshRight()
     local m = AtlasPlus_Maps[self.mapKey]
     if self.view == "loot" then
         local t = LineTitle(self.mapKey, self.lootLine)
-        self.sub:SetText((L[t] or t) .. (m.nomap and "" or ("  |cff888888" .. (AP.MODE_LABEL[self.mode] or "") .. "|r")))
+        self.sub:SetText(t .. (m.nomap and "" or ("  |cff888888" .. (AP.MODE_LABEL[self.mode] or "") .. "|r")))
     elseif self.view == "search" then
         local f = self.found or { places = 0, bosses = 0, items = #(self.results or {}) }
         local parts = {}
@@ -866,38 +996,45 @@ function UI:RefreshRight()
         local hasLoot = AtlasPlus_Loot[self.mapKey] ~= nil
         self.sub:SetText(hasLoot and (m.nomap and string.format(L["Click a list (|r%s>|r|cff888888) to see its items|r"], AP.ACCENT) or string.format(L["Click a boss (|r%s>|r|cff888888) to see its loot|r"], AP.ACCENT)) or "")
     end
+    self.rowData = self:BuildRows()
     self:RefreshRows()
+    if self.view == "search" then
+        self.foot:SetText(L["Click a result to open its boss.  Shift-click: link in chat.  Ctrl-click: try on."])
+    elseif self.view == "loot" and m.cat == "Vendors" then
+        self.foot:SetText(L["Prices from the game data.  Shift-click: link.  Ctrl-click: try on."])
+    elseif self.view == "loot" and m.cat == "World Drops" then
+        self.foot:SetText(L["Chances per kill, for a typical creature of the level.  Lx-y = creature levels.  Shift-click: link."])
+    elseif self.view == "loot" then
+        self.foot:SetText(L["Drop chances from the 3.3.5a database (the server can differ).  HM = hard mode.  |cff4a9effA|r / |cffff4a4aH|r = Alliance / Horde only.  Shift-click: link.  Ctrl-click: try on."])
+    else
+        self.foot:SetText("")
+    end
+end
+
+local FACTION_TAG = { A = " |cff4a9effA|r", H = " |cffff4a4aH|r" }
+local function PctText(p)
+    if p >= 100 then return "|cff4cd964100%|r" end
+    local c = p >= 20 and "|cffffffff" or (p >= 5 and "|cffcccccc" or "|cff999999")
+    return c .. p .. "%|r"
 end
 
 function UI:RefreshRows()
-    local rows = self:GetRows()
-    self.currentRows = rows
-    FauxScrollFrame_Update(self.rowScroll, #rows, ROWS, ROW_H)
+    local data = self.rowData or {}
+    FauxScrollFrame_Update(self.rowScroll, #data, ROWS, ROW_H)
     local off = FauxScrollFrame_GetOffset(self.rowScroll)
-    local w = self.right:GetWidth() - 26
-    for i = 1, ROWS do
-        local r = self.rows[i]
-        local d = rows[off + i]
-        r.data = d
+    local width = RIGHT_W - 17
+    for i, row in ipairs(self.rows) do
+        local d = data[off + i]
+        row.data = d
         if d then
-            r.icon:Hide()
-            r.left:ClearAllPoints(); r.left:SetPoint("LEFT", 6, 0)
-            r.mid:SetText("")
-            if d.kind == "sep" then
-                r.left:SetText(AP.ACCENT .. d.text .. "|r")
-                r.right:SetText("")
-                r.hl:Hide()
-            elseif d.kind == "note" then
-                r.left:SetText("|cff888888" .. d.text .. "|r")
-                r.right:SetText("")
-                r.hl:Hide()
-            elseif d.kind == "empty" then
-                r.left:SetText("|cff888888" .. d.text .. "|r")
-                r.right:SetText("")
-                r.hl:Show()
+            LayoutRow(row, d.kind, width, (d.cost or d.copper) and 120 or (d.quest and 50) or nil)
+            if d.kind == "group" then
+                row.left:SetText(d.text)
+                row.right:SetText("")
+                row.hl:Show()
             elseif d.kind == "legend" then
-                r.left:SetText(d.text or "")
-                r.right:SetText(d.loot and (AP.ACCENT .. L["loot >"] .. "|r") or "")
+                row.left:SetText(d.text or "")
+                row.right:SetText(d.loot and (AP.ACCENT .. L["loot >"] .. "|r") or "")
                 local clickable = d.loot or (d.type == 1 and d.id and AP.byArea[d.id])
                 if clickable then row.hl:Show() else row.hl:Hide() end
             elseif d.kind == "item" then
@@ -922,88 +1059,82 @@ function UI:RefreshRows()
                 row.icon:SetTexture(GetItemIcon(d.id) or "Interface\\Icons\\INV_Misc_QuestionMark")
                 row.left:SetText((W.QUALITY_HEX[q] or "") .. name .. "|r")
                 row.mid:SetText(d.where)
-                row.right:SetText(PctText(d.pct))
+                row.right:SetText("")
                 row.hl:Show()
             end
-            if d.kind == "item" or d.kind == "place" or d.kind == "boss" then
-                row.icon:Show()
-                row.left:ClearAllPoints(); row.left:SetPoint("LEFT", row.icon, "RIGHT", 4, 0)
-            end
-            local rw = row.right:GetStringWidth() or 0
-            local mw = row.mid:GetStringWidth() or 0
-            row.left:SetWidth(math.max(80, w - rw - mw - 30))
             row:Show()
         else
             row:Hide()
         end
     end
+    if #data == 0 then
+        if self.view == "search" then
+            self.empty:SetText((self.searchText or ""):len() < 2 and L["Type at least 2 letters."] or L["Nothing found."])
+        elseif self.view == "loot" then
+            self.empty:SetText(L["No loot for this mode."])
+        else
+            self.empty:SetText("")
+        end
+        self.empty:Show()
+    else
+        self.empty:Hide()
+    end
 end
 
 ---------------------------------------------------------------------------
--- Row clicks and tooltips
+-- Row interaction
 ---------------------------------------------------------------------------
-function UI:OnRowClick(row, btn)
+function UI:OnRowClick(row, button)
+    -- right-click in a loot list: back to the bosses (or the search results)
+    if button == "RightButton" and self.view == "loot" then self:Back() return end
     local d = row.data
     if not d then return end
+    if d.kind == "group" then self:ToggleGroup(d.gk) return end
     if d.kind == "legend" then
         if d.loot then
             self:OpenLoot(d.line)
         elseif d.type == 1 and d.id and AP.byArea[d.id] then
             self:SelectMap(AP.byArea[d.id])
-        end
-    elseif d.kind == "item" then
-        local _, link = ItemInfo(d.id)
-        if IsModifiedClick("CHATLINK") and link then
+        elseif d.type == 3 and d.id and IsShiftKeyDown() then
+            local _, link = ItemInfo(d.id)
             ChatEdit_InsertLink(link)
-        elseif IsModifiedClick("DRESSUP") and link then
-            DressUpItemLink(link)
         end
-    elseif d.kind == "place" then
-        self:SelectMap(d.key, true)
-    elseif d.kind == "boss" then
-        self:SelectMap(d.key, true)
-        self:OpenLoot(d.line)
-    elseif d.key then
-        self:SelectMap(d.key, true)
-        if d.line then self:OpenLoot(d.line) end
+        return
     end
-end
-
-local function CostParts(d)
-    local parts = {}
-    local rating
-    if d.cost then
-        local c = AtlasPlus_Costs and AtlasPlus_Costs[d.cost]
-        if c then
-            rating = c.rating
-            if c.points then
-                for _, pt in ipairs(c.points) do
-                    local n = pt[2] == "Honor" and L["Honor Points"] or (pt[2] == "Arena" and L["Arena Points"] or pt[2])
-                    parts[#parts + 1] = { pt[1], n }
-                end
-            end
-            if c.items then
-                for _, it in ipairs(c.items) do
-                    local name, _, q = ItemInfo(it[2])
-                    local icon = GetItemIcon(it[2])
-                    local tex = icon and ("|T" .. icon .. ":14:14:0:0|t ") or ""
-                    parts[#parts + 1] = { it[1], tex .. (W.QUALITY_HEX[q] or "") .. name .. "|r" }
-                end
-            end
-        end
+    if d.kind == "place" then
+        self:OpenInstance(d.key)
+        return
     end
-    if d.copper and d.copper > 0 then
-        parts[#parts + 1] = { CostText(d), "" }
+    if d.kind == "boss" then
+        local from = { results = self.results, text = self.searchText, found = self.found }
+        self:SelectMap(d.key, true)
+        self.view, self.lootLine, self.fromSearch = "loot", d.line, from
+        FauxScrollFrame_SetOffset(self.rowScroll, 0)
+        self.rowScroll:SetVerticalScroll(0)
+        self:RefreshRight()
+        return
     end
-    return parts, rating
+    local _, link = ItemInfo(d.id)
+    if IsControlKeyDown() and DressUpItemLink then DressUpItemLink(link) return end
+    if IsShiftKeyDown() then ChatEdit_InsertLink(link) return end
+    if d.kind == "result" then
+        local from = { results = self.results, text = self.searchText }
+        self.mode = d.mode
+        AP.db.modes[d.key] = d.mode
+        self:SelectMap(d.key, true)
+        self.view, self.lootLine, self.fromSearch = "loot", d.line, from
+        FauxScrollFrame_SetOffset(self.rowScroll, 0)
+        self.rowScroll:SetVerticalScroll(0)
+        self:RefreshRight()
+    end
 end
 
 function UI:OnRowEnter(row)
     local d = row.data
     if not d then return end
+    GameTooltip:SetOwner(row, "ANCHOR_RIGHT")
     if d.kind == "legend" then
-        GameTooltip:SetOwner(row, "ANCHOR_RIGHT")
-        if d.type == 2 and d.id then
+        if d.type == 3 and d.id then
             GameTooltip:SetHyperlink("item:" .. d.id)
         else
             GameTooltip:AddLine(strtrim(StripColor(d.text)), 1, 1, 1)
@@ -1013,13 +1144,22 @@ function UI:OnRowEnter(row)
         GameTooltip:Show()
         return
     end
-    if d.kind == "sep" or d.kind == "note" then return end
-    if not d.id then return end
-
-    GameTooltip:SetOwner(row, "ANCHOR_RIGHT")
+    if d.kind == "group" then
+        GameTooltip:AddLine(L["Items for this class"], 1, 1, 1)
+        GameTooltip:AddLine(d.open and L["Click: fold"] or L["Click: open"], 0.6, 0.6, 0.6)
+        GameTooltip:Show()
+        return
+    end
+    if d.kind == "place" or d.kind == "boss" then
+        GameTooltip:AddLine(d.text, 1, 1, 1)
+        GameTooltip:AddLine(d.where, 0.8, 0.8, 0.8)
+        GameTooltip:AddLine(d.kind == "place" and L["Click: open this map"] or L["Click: see its loot"], 0.6, 0.6, 0.6)
+        GameTooltip:Show()
+        return
+    end
     GameTooltip:SetHyperlink("item:" .. d.id)
-
-    if self.view == "loot" then
+    GameTooltip:AddLine(" ")
+    if d.kind == "item" then
         if d.cost or d.copper then
             local parts, rating = CostParts(d)
             if #parts == 0 then GameTooltip:AddLine(L["Cost: free"], 1, 0.82, 0) end
@@ -1049,42 +1189,47 @@ function UI:OnRowEnter(row)
 end
 
 ---------------------------------------------------------------------------
--- Item search
+-- Item search (every instance, every mode)
 ---------------------------------------------------------------------------
-function UI:OnSearchChanged(text)
-    text = strtrim(text or "")
-    self.listFilter = text ~= "" and strlower(text) or nil
-    self:RefreshList()
-    if text:len() < 2 then
-        if self.view == "search" then
-            self.view = "legend"
-            self.results, self.resultsCapped = nil, nil
-            self:RefreshRight()
-        end
-        return
-    end
-    self:Search(text, true)
-end
+local MODE_ORDER = { N = 1, H = 2, ["10"] = 3, ["25"] = 4, ["10H"] = 5, ["25H"] = 6 }
 
 function UI:BuildSearchIndex()
-    if self.searchIndex then return end
-    local index = {}
-    for mapKey, lines in pairs(AtlasPlus_Loot) do
-        for line, modes in pairs(lines) do
-            for mode, str in pairs(modes) do
-                for entry in str:gmatch("[^,]+") do
-                    local id, pct = entry:match("^(%d+):([%d%.]+)")
-                    if id then
-                        id = tonumber(id)
-                        local rec = index[id]
-                        if not rec then rec = {}; index[id] = rec end
-                        rec[#rec + 1] = { key = mapKey, line = line, mode = mode, pct = tonumber(pct) }
-                    end
-                end
+    if self.index then return end
+    local idx = {}
+    local function add(key, line, mode, str)
+        for entry in (str or ""):gmatch("[^,]+") do
+            local id, pct, rest = entry:match("^(%d+):([%d%.]+)(.*)$")
+            if id then
+                idx[#idx + 1] = { id = tonumber(id), key = key, line = line, mode = mode, pct = tonumber(pct) }
             end
         end
     end
-    self.searchIndex = index
+    for key, lines in pairs(AtlasPlus_Loot) do
+        for line, modes in pairs(lines) do
+            for mode, str in pairs(modes) do add(key, line, mode, str) end
+        end
+    end
+    -- trash: shown under the first map of each instance
+    local firstKey = {}
+    for key, m in pairs(AtlasPlus_Maps) do
+        if m.mapID and m.cat ~= "Entrances" and (not firstKey[m.mapID] or key < firstKey[m.mapID]) then firstKey[m.mapID] = key end
+    end
+    for mapID, modes in pairs(AtlasPlus_Trash) do
+        if firstKey[mapID] then
+            for mode, str in pairs(modes) do add(firstKey[mapID], "trash", mode, str) end
+        end
+    end
+    self.index = idx
+end
+
+function UI:OnSearchChanged(text)
+    text = strlower(strtrim(text or ""))
+    self.searchText = text
+    if text == "" then
+        if self.view == "search" then self.view = "legend"; self:RefreshRight() end
+        return
+    end
+    self:Search(text, true)
 end
 
 function UI:Search(text, fromBox)
@@ -1106,78 +1251,76 @@ function UI:Search(text, fromBox)
             local acr = strlower(m.acr or "")
             local hit = strlower(m.name or ""):find(text, 1, true) or strlower(m.full or ""):find(text, 1, true)
             for a in acr:gmatch("[^,%s]+") do if a == text or (text:len() >= 3 and a:find(text, 1, true)) then hit = true end end
-            if hit then places[#places + 1] = { kind = "place", key = key, text = m.name, where = m.loc or "" } end
-            if m.lines then
-                local loot = self:GetLoot(key)
-                local curLoot = loot and (loot.norm or loot.heroic or loot["10h"] or loot["25h"])
-                for line, data in ipairs(m.lines) do
-                    local rawName = strtrim(StripColor(data[1] or ""))
-                    local cleanName = rawName:gsub("^%w+'?%)%s*", "")
-                    if strlower(cleanName):find(text, 1, true) and curLoot and curLoot[line] then
-                        bosses[#bosses + 1] = { kind = "boss", key = key, line = line, text = cleanName, where = m.name }
+            if hit then
+                places[#places + 1] = { kind = "place", key = key, text = m.name,
+                    where = (m.acr and (m.acr .. "  ") or "") .. "|cff888888" .. (m.cat or "") .. "|r" }
+            end
+        end
+        table.sort(places, function(a, b) return a.text < b.text end)
+        if text:len() >= 3 then
+            for key, lines in pairs(AtlasPlus_Loot) do
+                local m = AtlasPlus_Maps[key]
+                for line in pairs(lines) do
+                    if type(line) == "number" then
+                        local t = LineTitle(key, line)
+                        if strlower(t):find(text, 1, true) then
+                            bosses[#bosses + 1] = { kind = "boss", key = key, line = line, text = t,
+                                where = "|cff888888" .. (m and m.name or "") .. "|r" }
+                        end
                     end
                 end
             end
+            table.sort(bosses, function(a, b) if a.text ~= b.text then return a.text < b.text end return a.where < b.where end)
         end
     end
-    table.sort(places, function(a, b) return a.text < b.text end)
-    table.sort(bosses, function(a, b) return a.text < b.text end)
-    local MAX_ITEMS = 200
-    local count = 0
-    local capped = false
-    for id, entries in pairs(self.searchIndex) do
-        local name = GetItemInfo(id)
-        if name and strlower(name):find(text, 1, true) then
-            count = count + 1
-            if count <= MAX_ITEMS then
-                local byMap = {}
-                for _, e in ipairs(entries) do
-                    local k = e.key .. ":" .. tostring(e.line)
-                    local g = byMap[k]
-                    if not g then g = { key = e.key, line = e.line, modes = {}, bestPct = 0 }; byMap[k] = g; groups[#groups + 1] = { id = id, g = g } end
-                    g.modes[e.mode] = true
-                    if e.pct and e.pct > g.bestPct then g.bestPct = e.pct end
+    if text:len() >= 3 then
+        for _, e in ipairs(self.index) do
+            local d = AtlasPlus_Items[e.id]
+            local name = d and d[1] or ""
+            if strlower(name):find(text, 1, true) or (d and strlower(d[3]):find(text, 1, true)) then
+                local gk = e.id .. ":" .. e.key .. ":" .. e.line
+                local g = groups[gk]
+                if not g then
+                    local m = AtlasPlus_Maps[e.key]
+                    g = { kind = "result", id = e.id, key = e.key, line = e.line, mode = e.mode, list = {},
+                          where = LineTitle(e.key, e.line) .. "  |cff888888" .. (m and (m.nomap and m.full or m.name) or "") .. "|r",
+                          q = d and d[2] or 0, nomap = m and m.nomap }
+                    groups[gk] = g
+                    results[#results + 1] = g
                 end
-            else
-                capped = true
+                g.list[#g.list + 1] = e.mode
+                if MODE_ORDER[e.mode] < MODE_ORDER[g.mode] then g.mode = e.mode end
             end
         end
     end
-    table.sort(groups, function(a, b)
-        local na = GetItemInfo(a.id) or ""
-        local nb = GetItemInfo(b.id) or ""
+    for _, g in ipairs(results) do
+        table.sort(g.list, function(a, b) return MODE_ORDER[a] < MODE_ORDER[b] end)
+        local labels = {}
+        for i, md in ipairs(g.list) do labels[i] = AP.MODE_LABEL[md] or md end
+        g.modes = table.concat(labels, ", ")
+    end
+    table.sort(results, function(a, b)
+        if a.q ~= b.q then return a.q > b.q end
+        local na, nb = AtlasPlus_Items[a.id][1], AtlasPlus_Items[b.id][1]
         if na ~= nb then return na < nb end
-        return a.g.bestPct > b.g.bestPct
+        return a.where < b.where
     end)
-    if #places > 0 then
-        for _, p in ipairs(places) do results[#results + 1] = p end
-    end
-    if #bosses > 0 then
-        for _, b in ipairs(bosses) do results[#results + 1] = b end
-    end
-    for _, item in ipairs(groups) do
-        local g = item.g
-        local m = AtlasPlus_Maps[g.key]
-        local modesList = {}
-        for _, mode in ipairs(AP.MODE_ORDER) do if g.modes[mode] then modesList[#modesList + 1] = AP.MODE_LABEL[mode] or mode end end
-        local where = (m and m.name or g.key)
-        if g.line and g.line ~= "trash" and m and m.lines and m.lines[g.line] then
-            where = where .. " - " .. LineTitle(g.key, g.line)
-        end
-        results[#results + 1] = {
-            id = item.id, key = g.key, line = g.line, pct = g.bestPct,
-            where = where, modes = table.concat(modesList, ", "), nomap = m and m.nomap,
-        }
-    end
+    self.resultsCapped = #results > 200
+    while #results > 200 do table.remove(results) end
+    self.found = { places = #places, bosses = #bosses, items = #results }
+    for i = #bosses, 1, -1 do table.insert(results, 1, bosses[i]) end
+    for i = #places, 1, -1 do table.insert(results, 1, places[i]) end
     self.results = results
-    self.resultsCapped = capped
-    self.found = { places = #places, bosses = #bosses, items = count }
     self.view = "search"
+    self.fromSearch = nil
     FauxScrollFrame_SetOffset(self.rowScroll, 0)
     self.rowScroll:SetVerticalScroll(0)
     self:RefreshRight()
 end
 
+---------------------------------------------------------------------------
+-- Show / hide
+---------------------------------------------------------------------------
 function UI:OnShow()
     -- the list starts folded every time the window opens
     for _, cat in ipairs(AP.CATEGORIES) do AP.db.collapsed[cat] = true end
@@ -1197,7 +1340,7 @@ function UI:Toggle() if self.frame:IsShown() then self.frame:Hide() else self.fr
 ---------------------------------------------------------------------------
 -- Settings (replaces the content while open)
 ---------------------------------------------------------------------------
---- Settings: a window of its own, so the map stays visible while you change things
+-- Settings: a window of its own, so the map stays visible while you change things
 function UI:CreateSettings(f)
     local win = CreateFrame("Frame", "AtlasPlusSettings", UIParent)
     W.Size(win, FRAME_W - 20, FRAME_H - TOP + 83)
@@ -1213,339 +1356,223 @@ function UI:CreateSettings(f)
     local bar = CreateFrame("Frame", nil, win)
     bar:SetPoint("TOPLEFT", 1, -1)
     bar:SetPoint("TOPRIGHT", -1, -1)
-    bar:SetHeight(30)
+    bar:SetHeight(28)
     W.Backdrop(bar, C.panel, C.panel)
     bar:EnableMouse(true)
     bar:RegisterForDrag("LeftButton")
-    bar:SetScript("OnMouseDown", function() win:StartMoving() end)
-    bar:SetScript("OnMouseUp", function() win:StopMovingOrSizing() end)
-    local icon = bar:CreateTexture(nil, "ARTWORK")
-    W.Size(icon, 18, 18)
-    icon:SetPoint("LEFT", 8, 0)
-    icon:SetTexture(ICON)
-    local t = W.Text(bar, "GameFontNormal")
-    t:SetPoint("LEFT", icon, "RIGHT", 6, 0)
-    t:SetText(L["Settings"])
-    local close = W.Button(bar, "X", 26, 22)
-    close:SetPoint("RIGHT", -4, 0)
-    close:SetScript("OnClick", function() win:Hide() end)
-
+    bar:SetScript("OnDragStart", function() win:StartMoving() end)
+    bar:SetScript("OnDragStop", function()
+        win:StopMovingOrSizing()
+        local sc = win:GetEffectiveScale() / UIParent:GetEffectiveScale()
+        AP.db.settingsPos = { left = win:GetLeft() * sc, top = win:GetTop() * sc }
+    end)
+    local bt = W.Text(bar, "GameFontNormal")
+    bt:SetPoint("LEFT", 10, 0)
+    bt:SetText("|cffffffffAtlas Plus|r  " .. AP.ACCENT .. L["Settings"] .. "|r")
+    local bx = W.Button(bar, "X", 24, 20)
+    bx:SetPoint("RIGHT", -4, 0)
+    bx:SetScript("OnClick", function() win:Hide() end)
+    -- size: drag the bottom right corner
     local g = CreateFrame("Button", nil, win)
     W.Size(g, 16, 16)
     g:SetPoint("BOTTOMRIGHT", -2, 2)
     g:SetFrameLevel(win:GetFrameLevel() + 30)
     for i = 0, 2 do
         local d = g:CreateTexture(nil, "OVERLAY")
-        d:SetTexture("Interface\\Buttons\\WHITE8X8"); d:SetVertexColor(0.6, 0.6, 0.6, 0.8)
-        W.Size(d, 2, 2); d:SetPoint("BOTTOMRIGHT", -(i * 4) - 2, 2)
+        d:SetTexture("Interface\\Buttons\\WHITE8X8")
+        d:SetVertexColor(0.6, 0.6, 0.6, 0.8)
+        W.Size(d, 2, 2)
+        d:SetPoint("BOTTOMRIGHT", -(i * 4) - 2, 2)
         local e = g:CreateTexture(nil, "OVERLAY")
-        e:SetTexture("Interface\\Buttons\\WHITE8X8"); e:SetVertexColor(0.6, 0.6, 0.6, 0.8)
-        W.Size(e, 2, 2); e:SetPoint("BOTTOMRIGHT", -2, (i * 4) + 2)
+        e:SetTexture("Interface\\Buttons\\WHITE8X8")
+        e:SetVertexColor(0.6, 0.6, 0.6, 0.8)
+        W.Size(e, 2, 2)
+        e:SetPoint("BOTTOMRIGHT", -2, (i * 4) + 2)
     end
-    g:SetScript("OnEnter", function(self) W.Tip(self, L["Resize: drag this corner"]) end)
-    g:SetScript("OnLeave", function() GameTooltip:Hide() end)
     g:SetScript("OnMouseDown", function(self)
-        local scale = AP.db.scale or 1
-        local sx, sy = GetCursorPosition()
-        self:SetScript("OnUpdate", function()
-            local cx, cy = GetCursorPosition()
-            local dx = (cx - sx) / UIParent:GetEffectiveScale()
-            local dy = (sy - cy) / UIParent:GetEffectiveScale()
-            local d = (dx + dy) / 2
-            local curW = f:GetWidth() * scale
-            local targetW = math.max(650, math.min(1900, curW + d))
-            local newScale = math.max(0.6, math.min(1.5, targetW / f:GetWidth()))
-            newScale = math.floor(newScale * 40 + 0.5) / 40
-            if newScale ~= scale then
-                scale = newScale
-                AP.db.scale = scale
-                UI:ApplyLayout()
-            end
+        local ui = UIParent:GetEffectiveScale()
+        self.x0, self.s0, self.w0 = GetCursorPosition() / ui, AP.db.settingsScale or 0.9, win:GetWidth() * (AP.db.settingsScale or 0.9)
+        self:SetScript("OnUpdate", function(s2)
+            if not IsMouseButtonDown("LeftButton") then s2:SetScript("OnUpdate", nil) return end
+            local cx = GetCursorPosition() / ui
+            local sc = math.max(0.5, math.min(1.4, (s2.w0 + cx - s2.x0) / win:GetWidth()))
+            AP.db.settingsScale = math.floor(sc * 100 + 0.5) / 100
+            UI:PlaceSettings()
         end)
     end)
     g:SetScript("OnMouseUp", function(self) self:SetScript("OnUpdate", nil) end)
-    g:SetScript("OnHide", function(self) if self:GetScript("OnUpdate") then self:SetScript("OnUpdate", nil) end end)
+    g:SetScript("OnHide", function(self) self:SetScript("OnUpdate", nil) end)
 
     local s = CreateFrame("Frame", nil, win)
     s:SetPoint("TOPLEFT", 0, -30)
     s:SetPoint("BOTTOMRIGHT", 0, 0)
+    local db = function() return AP.db end
 
-    -- Three columns: 1. Window, 2. World map, 3. Map markers
-    local c1 = CreateFrame("Frame", nil, s)
-    c1:SetPoint("TOPLEFT", 12, -8); c1:SetPoint("BOTTOMLEFT", 12, 10); c1:SetWidth(350)
-    local c2 = CreateFrame("Frame", nil, s)
-    c2:SetPoint("TOPLEFT", c1, "TOPRIGHT", 14, 0); c2:SetPoint("BOTTOMLEFT", c1, "BOTTOMRIGHT", 14, 0); c2:SetWidth(350)
-    local c3 = CreateFrame("Frame", nil, s)
-    c3:SetPoint("TOPLEFT", c2, "TOPRIGHT", 14, 0); c3:SetPoint("BOTTOMLEFT", c2, "BOTTOMRIGHT", 14, 0); c3:SetWidth(350)
-
-    local function Section(parent, title, y)
-        local t = W.Text(parent, "GameFontNormalLarge")
-        t:SetPoint("TOPLEFT", 4, y)
-        t:SetText(title)
-        local line = parent:CreateTexture(nil, "ARTWORK")
-        line:SetPoint("TOPLEFT", 0, y - 20)
-        line:SetPoint("RIGHT", parent, "RIGHT", 0, 0)
-        line:SetHeight(1)
-        line:SetTexture("Interface\\Buttons\\WHITE8X8")
-        line:SetVertexColor(0.25, 0.25, 0.25, 0.8)
-        return y - 30
+    local function Header(text, x, y)
+        local h = W.Text(s, "GameFontNormal")
+        h:SetPoint("TOPLEFT", x, y)
+        h:SetText(AP.ACCENT .. text .. "|r")
+        local l = s:CreateTexture(nil, "ARTWORK")
+        l:SetTexture("Interface\\Buttons\\WHITE8X8")
+        l:SetVertexColor(unpack(C.line))
+        l:SetHeight(1)
+        l:SetWidth(330)
+        l:SetPoint("TOPLEFT", h, "BOTTOMLEFT", 0, -4)
     end
-
-    -----------------------------------------------------------------------
-    -- Column 1: Window
-    -----------------------------------------------------------------------
-    local y = Section(c1, L["Window"], 0)
-    local cb1 = W.CheckBox(c1, L["Open on the map of where you are"], AP.db.autoSelect, function(v) AP.db.autoSelect = v end,
-                           L["In a dungeon or raid: its map and wing, with the loot of your difficulty. Outdoors: the world map, on your zone."])
-    cb1:SetPoint("TOPLEFT", 4, y)
-    local cb2 = W.CheckBox(c1, L["Open by itself in dungeons and raids"], AP.db.autoOpen, function(v) AP.db.autoOpen = v end)
-    cb2:SetPoint("TOPLEFT", 4, y - 24)
-    local cb3 = W.CheckBox(c1, L["Minimap button"], AP.db.minimap, function(v)
-        AP.db.minimap = v
-        if UI.minimapBtn then UI.minimapBtn:SetShown(v) end
-    end)
-    cb3:SetPoint("TOPLEFT", 4, y - 48)
-    local cb4 = W.CheckBox(c1, L["Lock the window"], AP.db.locked, function(v) AP.db.locked = v end,
-                           L["It can't be moved by its title bar."])
-    cb4:SetPoint("TOPLEFT", 4, y - 72)
-    local cb5 = W.CheckBox(c1, L["Fade while moving"], AP.db.fadeMoving, function(v) AP.db.fadeMoving = v end,
-                           L["See-through while you move, unless the mouse is over it."])
-    cb5:SetPoint("TOPLEFT", 4, y - 96)
-
-    local slFade = W.Slider(c1, L["Opacity while moving"], 0.2, 0.9, AP.db.fadeAlpha or 0.5, 0.05, function(v) AP.db.fadeAlpha = v end)
-    slFade:SetPoint("TOPLEFT", 12, y - 138)
-    slFade:SetWidth(320)
-
-    local slScale = W.Slider(c1, L["Window size"], 0.7, 1.4, AP.db.scale or 1, 0.05, function(v)
-        AP.db.scale = v
-        UI:ApplyLayout()
-    end)
-    slScale:SetPoint("TOPLEFT", 12, y - 188)
-    slScale:SetWidth(320)
-
-    local slAlpha = W.Slider(c1, L["Window opacity"], 0.4, 1.0, AP.db.alpha or 1, 0.05, function(v)
-        AP.db.alpha = v
-        f:SetAlpha(v)
-    end)
-    slAlpha:SetPoint("TOPLEFT", 12, y - 238)
-    slAlpha:SetWidth(320)
-
-    local help = W.Text(c1, "GameFontDisableSmall")
-    help:SetPoint("TOPLEFT", 8, y - 280)
-    help:SetPoint("RIGHT", c1, "RIGHT", -8, 0)
-    help:SetJustifyH("LEFT")
-    help:SetText(L["Move the window: drag its title. Resize it: drag its bottom right corner."])
-
-    -----------------------------------------------------------------------
-    -- Column 2: World map
-    -----------------------------------------------------------------------
-    y = Section(c2, L["World map"], 0)
-    local cbM = W.CheckBox(c2, L["The map key (M) opens Atlas Plus"], AP.db.hookWorldMap, function(v) AP.db.hookWorldMap = v end,
-                           L["The game's map opens inside Atlas Plus, quests and map addons included. Untick to get the game's map back on M."])
-    cbM:SetPoint("TOPLEFT", 4, y)
-    local cbInst = W.CheckBox(c2, L["Game instance maps"], AP.db.dungeonMaps, function(v) AP.db.dungeonMaps = v end,
-                              L["In a dungeon or raid with a game map (Ulduar, Icecrown Citadel...): open it, on your floor. The Atlas map stays in the Atlas tab."])
-    cbInst:SetPoint("TOPLEFT", 4, y - 24)
-    local cbFog = W.CheckBox(c2, L["No fog of war"], AP.db.noFog, function(v)
-        AP.db.noFog = v
-        AP.Fog:Refresh()
-    end, L["Show the areas you have not explored yet."])
-    cbFog:SetPoint("TOPLEFT", 4, y - 48)
-    local cbDark = W.CheckBox(c2, L["Darken unexplored areas"], AP.db.fogDarken, function(v)
-        AP.db.fogDarken = v
-        AP.Fog:Refresh()
-    end, L["So you can still tell them apart."])
-    cbDark:SetPoint("TOPLEFT", 4, y - 72)
-    local cbZone = W.CheckBox(c2, L["Zone panel (top left of the map)"], AP.db.showZoneInfo, function(v)
-        AP.db.showZoneInfo = v
-        AP.WorldView:RefreshInfo()
-    end, L["Zone info under the cursor"])
-    cbZone:SetPoint("TOPLEFT", 4, y - 96)
-    local cbCoords = W.CheckBox(c2, L["Coordinates (yours and the cursor's)"], AP.db.showCoords, function(v)
-        AP.db.showCoords = v
-        AP.WorldView:RefreshCoords()
-    end)
-    cbCoords:SetPoint("TOPLEFT", 4, y - 120)
-
-    local slQ = W.Slider(c2, L["Quest icon size"], 0.7, 1.4, AP.db.questScale or 1, 0.05, function(v)
-        AP.db.questScale = v
-        if AP.WorldMap then AP.WorldMap:RescaleQuestIcons() end
-    end)
-    slQ:SetPoint("TOPLEFT", 12, y - 160)
-    slQ:SetWidth(320)
-
-    local slMapAlpha = W.Slider(c2, L["Game map opacity"], 0.3, 1.0, AP.db.mapAlpha or 1, 0.05, function(v)
-        AP.db.mapAlpha = v
-        if AP.WorldMap and not AP.WorldMap.embedded then WorldMapFrame:SetAlpha(v) end
-    end)
-    slMapAlpha:SetPoint("TOPLEFT", 12, y - 206)
-    slMapAlpha:SetWidth(320)
-
-    local slSmall = W.Slider(c2, L["Game small map size"], 0.6, 1.0, AP.db.smallMapScale or 0.8, 0.05, function(v)
-        AP.db.smallMapScale = v
-        if AP.WorldMap and not AP.WorldMap.embedded and not GetCVarBool("miniWorldMap") then
-            WorldMapFrame:SetScale(v)
-        end
-    end)
-    slSmall:SetPoint("TOPLEFT", 12, y - 252)
-    slSmall:SetWidth(320)
-
-    local mapHelp = W.Text(c2, "GameFontDisableSmall")
-    mapHelp:SetPoint("TOPLEFT", 8, y - 296)
-    mapHelp:SetPoint("RIGHT", c2, "RIGHT", -8, 0)
-    mapHelp:SetJustifyH("LEFT")
-    mapHelp:SetText(L["These two: the game's map opened on its own (Game map button)."])
-
-    -----------------------------------------------------------------------
-    -- Column 3: Map markers
-    -----------------------------------------------------------------------
-    y = Section(c3, L["Map markers"], 0)
-    local function MCheck(label, key, tip)
-        local cb = W.CheckBox(c3, label, AP.db.markers[key], function(v)
-            AP.db.markers[key] = v
-            AP.Markers:Draw()
-        end, tip)
+    local y, x0
+    local function Column(title, x)
+        Header(title, x, -16)
+        x0, y = x, -44
+    end
+    local function Check(label, desc, key, after)
+        local cb = W.CheckBox(s, label, desc, function() return db()[key] end, function(v) db()[key] = v; if after then after(v) end end)
+        cb:SetPoint("TOPLEFT", x0 + 4, y)
+        y = y - (desc and 46 or 28)
         return cb
     end
-    local my = y
-    local mLabels = {
-        dungeon = L["Dungeons (blue)"], raid = L["Raids (green)"], worldboss = L["World bosses"],
-        portal = L["Portals"], boat = L["Boats"], zepp = L["Zeppelins"], tram = L["Deeprun Tram"],
-        flight = L["Flight masters"], inn = L["Innkeepers"], mail = L["Mailboxes"], bank = L["Banks"], auction = L["Auction houses"],
-    }
-    for _, t in ipairs(AP.Markers.TYPES) do
-        local cb = MCheck(mLabels[t.key] or t.label, t.key)
-        cb:SetPoint("TOPLEFT", 4, my)
-        my = my - 22
+    local function Slider(label, minV, maxV, step, key, after)
+        y = y - 26
+        local sl = W.Slider(s, label, minV, maxV, step, function() return db()[key] or 1 end,
+            function(v) db()[key] = v; if after then after(v) end end, function(v) return math.floor(v * 100 + 0.5) .. "%" end)
+        sl:SetPoint("TOPLEFT", x0 + 8, y)
+        y = y - 30
+        return sl
     end
-    local cbCont = W.CheckBox(c3, L["Markers on continent maps"], AP.db.continentMarkers, function(v)
-        AP.db.continentMarkers = v
-        AP.Markers:Draw()
-    end, L["Not the town ones (flight masters, inns...)."])
-    cbCont:SetPoint("TOPLEFT", 4, my)
-    my = my - 22
-    local cbQ = W.CheckBox(c3, L["Hide Questie's dungeon and raid icons"], AP.db.hideQuestiePins, function(v)
-        AP.db.hideQuestiePins = v
-        AP.Markers:SyncQuestie()
-    end, L["While the Atlas Plus ones are on. They come back when you turn these off."])
-    cbQ:SetPoint("TOPLEFT", 4, my)
-    my = my - 22
-    local cbFac = W.CheckBox(c3, L["Only my faction's"], AP.db.myFactionOnly, function(v)
-        AP.db.myFactionOnly = v
-        AP.Markers:Draw()
-    end, L["Transports, portals and town markers. Neutral ones always show."])
-    cbFac:SetPoint("TOPLEFT", 4, my)
-    my = my - 24
+    local function Note(text)
+        local n = W.Text(s, "GameFontDisableSmall")
+        n:SetPoint("TOPLEFT", x0 + 4, y - 8)
+        n:SetWidth(330)
+        n:SetJustifyH("LEFT")
+        n:SetText(text)
+        y = y - 34
+    end
+    local function Refresh() AP.WorldMap:Update(); AP.WorldView:Refresh() end
 
-    local slScale = W.Slider(c3, L["Marker size"], 0.7, 1.4, AP.db.markerScale or 1, 0.05, function(v)
-        AP.db.markerScale = v
-        AP.Markers:Draw()
-    end)
-    slScale:SetPoint("TOPLEFT", 12, my - 14)
-    slScale:SetWidth(320)
+    -- 1. the window
+    Column("Atlas Plus window", 20)
+    Check(L["Open on the map of where you are"], L["In a dungeon or raid: its map and wing, with the loot of your difficulty. Outdoors: the world map, on your zone."], "autoSelect")
+    Check(L["Open by itself in dungeons and raids"], nil, "autoOpen")
+    local mm = W.CheckBox(s, L["Minimap button"], nil, function() return not db().minimap.hide end,
+        function(v) db().minimap.hide = not v; UI:UpdateMinimapButton() end)
+    mm:SetPoint("TOPLEFT", x0 + 4, y)
+    y = y - 28
+    Check(L["Lock the window"], L["It can't be moved by its title bar."], "locked")
+    Check(L["Fade while moving"], L["See-through while you move, unless the mouse is over it."], "fadeMoving")
+    Slider(L["Opacity while moving"], 0.1, 1, 0.05, "fadeAlpha")
+    Slider(L["Window size"], 0.5, 1.6, 0.05, "scale", function() UI:ApplyLayout() end)
+    Slider(L["Window opacity"], 0.3, 1, 0.05, "alpha", function() UI:ApplyLayout() end)
+    Note(L["Move the window: drag its title. Resize it: drag its bottom right corner."])
 
-    local slTown = W.Slider(c3, L["Town marker size"], 0.7, 1.4, AP.db.townScale or 1, 0.05, function(v)
-        AP.db.townScale = v
-        AP.Markers:Draw()
-    end)
-    slTown:SetPoint("TOPLEFT", 12, my - 60)
-    slTown:SetWidth(320)
+    -- 2. the world map
+    Column(L["World map"], 385)
+    Check(L["The map key (M) opens Atlas Plus"], L["The game's map opens inside Atlas Plus, quests and map addons included. Untick to get the game's map back on M."], "replaceWorldMap")
+    Check(L["Game instance maps"], L["In a dungeon or raid with a game map (Ulduar, Icecrown Citadel...): open it, on your floor. The Atlas map stays in the Atlas tab."], "gameInstanceMaps")
+    Check(L["No fog of war"], L["Show the areas you have not explored yet."], "showUnexplored", Refresh)
+    Check(L["Darken unexplored areas"], L["So you can still tell them apart."], "darkenUnexplored", Refresh)
+    Check(L["Zone panel (top left of the map)"], nil, "zoneBlock", Refresh)
+    Check(L["Zone info under the cursor"], nil, "worldZoneInfo", Refresh)
+    Check(L["Coordinates (yours and the cursor's)"], nil, "worldCoords", Refresh)
+    Slider(L["Quest icon size"], 0.5, 2, 0.1, "questScale", function() AP.WorldMap:RescaleQuestIcons() end)
+    Slider(L["Game map opacity"], 0.3, 1, 0.05, "gameMapAlpha", function() AP.WorldMap:Update() end)
+    Slider(L["Game small map size"], 0.5, 1.5, 0.05, "gameSmallScale", function() AP.WorldMap:Update() end)
+    Note("These two: the game's own map (Game map button). The size changes the small map, even while it is open.")
 
-    -- Credits at the bottom across the columns
+    -- 3. map markers: one switch per kind, two per line
+    Column(L["Map markers"], 750)
+    local col = 0
+    local function Marker(label, key)
+        local cb = W.CheckBox(s, label, nil, function() return db().markers[key] end, function(v) db().markers[key] = v; AP.Markers:Refresh() end)
+        cb:SetPoint("TOPLEFT", x0 + 4 + col * 172, y)
+        if col == 1 then y = y - 24 end
+        col = 1 - col
+    end
+    Marker(L["Dungeons (blue)"], "dungeon"); Marker(L["Raids (green)"], "raid")
+    Marker(L["World bosses"], "worldboss"); Marker(L["Portals"], "portal")
+    Marker(L["Boats"], "boat");             Marker(L["Zeppelins"], "zepp")
+    Marker(L["Deeprun Tram"], "tram");      Marker(L["Flight masters"], "flight")
+    Marker(L["Innkeepers"], "inn");         Marker(L["Mailboxes"], "mail")
+    Marker(L["Banks"], "bank");             Marker(L["Auction houses"], "auction")
+    y = y - 6
+    Check(L["Markers on continent maps"], L["Not the town ones (flight masters, inns...)."], "continentMarkers", function() AP.Markers:Refresh() end)
+    Check(L["Hide Questie's dungeon and raid icons"], L["While the Atlas Plus ones are on. They come back when you turn these off."], "hideQuestieInstances", function() AP.Markers:SyncQuestie(true) end)
+    Check(L["Only my faction's"], L["Transports, portals and town markers. Neutral ones always show."], "myFactionOnly", function() AP.Markers:Refresh() end)
+    Slider(L["Marker size"], 0.6, 2, 0.1, "pinScale", function() AP.Markers:Refresh() end)
+    Slider(L["Town marker size"], 0.5, 2, 0.1, "townScale", function() AP.Markers:Refresh() end)
+
+    -- credits
     local credits = W.Text(s, "GameFontDisableSmall")
-    credits:SetPoint("BOTTOMLEFT", 16, 12)
-    credits:SetPoint("BOTTOMRIGHT", -16, 12)
-    credits:SetJustifyH("CENTER")
+    credits:SetPoint("BOTTOMLEFT", 20, 16)
+    credits:SetPoint("RIGHT", s, "RIGHT", -20, 0)
+    credits:SetJustifyH("LEFT")
     credits:SetText(string.format(L["Atlas Plus %s (Circle Edition) by Saranwrap & dadec666. Instance maps and legends from Atlas (GPL v2). Zone levels from LibTourist-3.0 (MIT). Database aligned with wowroad.info.\n/ap - open / close     /ap here - map of where you are     /ap world - world map     /ap search <item>     /ap reset - window position and size"], AP.VERSION))
 end
 
+function UI:PlaceSettings()
+    local win = self.settings
+    local sc = AP.db.settingsScale or 0.9
+    win:SetScale(sc)
+    win:ClearAllPoints()
+    local p = AP.db.settingsPos
+    if p and p.left then win:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", p.left / sc, p.top / sc)
+    else win:SetPoint("CENTER", UIParent, "CENTER", 0, 0) end
+end
+
 function UI:ShowSettings()
-    if not self.settings then self:CreateSettings(self.frame) end
+    self:PlaceSettings()
     self.settings:Show()
 end
 
----------------------------------------------------------------------------
--- Interface Options panel (ESC -> Interface -> AddOns -> Atlas Plus)
----------------------------------------------------------------------------
-function UI:CreateInterfacePanel()
-    local panel = CreateFrame("Frame", "AtlasPlusInterfaceOptions", UIParent)
-    panel.name = "Atlas Plus"
+function UI:HideSettings()
+    if self.settings then self.settings:Hide() end
+end
 
-    local title = W.Text(panel, "GameFontNormalLarge")
-    title:SetPoint("TOPLEFT", 16, -16)
-    title:SetText("Atlas Plus |cfffc7a2b[Circle Edition]|r  v" .. AP.VERSION)
-
-    local desc = W.Text(panel, "GameFontHighlight")
-    desc:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -8)
-    desc:SetPoint("RIGHT", panel, "RIGHT", -16, 0)
-    desc:SetJustifyH("LEFT")
-    desc:SetText(L["Instance maps with every boss and its loot, item search, and world map zone info.\n\n/ap - open / close     /ap here - map of where you are     /ap settings"])
-
-    local btn = W.Button(panel, L["Open Atlas Plus"], 140, 26)
-    btn:SetPoint("TOPLEFT", desc, "BOTTOMLEFT", 0, -16)
-    btn:SetScript("OnClick", function()
-        InterfaceOptionsFrame_Show()          -- closes the options
-        UI:Toggle()
-    end)
-
-    local btnSett = W.Button(panel, L["Settings"], 140, 26)
-    btnSett:SetPoint("LEFT", btn, "RIGHT", 10, 0)
-    btnSett:SetScript("OnClick", function()
-        InterfaceOptionsFrame_Show()
-        UI:ShowSettings()
-    end)
-
-    InterfaceOptions_AddCategory(panel)
+function UI:ToggleSettings()
+    if self.settings:IsShown() then self:HideSettings() else self:ShowSettings() end
 end
 
 ---------------------------------------------------------------------------
 -- Minimap button
 ---------------------------------------------------------------------------
+local function PositionMinimapButton(b)
+    local angle = math.rad(AP.db.minimap.angle or 200)
+    b:ClearAllPoints()
+    b:SetPoint("CENTER", Minimap, "CENTER", math.cos(angle) * 80, math.sin(angle) * 80)
+end
+
 function UI:CreateMinimapButton()
     local b = CreateFrame("Button", "AtlasPlusMinimapButton", Minimap)
-    self.minimapBtn = b
     W.Size(b, 31, 31)
     b:SetFrameStrata("MEDIUM")
     b:SetFrameLevel(8)
     b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     b:RegisterForDrag("LeftButton")
     b:SetHighlightTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight")
-
-    local icon = b:CreateTexture(nil, "BACKGROUND")
+    local bg = b:CreateTexture(nil, "BACKGROUND")
+    W.Size(bg, 20, 20)
+    bg:SetPoint("TOPLEFT", 7, -5)
+    bg:SetTexture("Interface\\Minimap\\UI-Minimap-Background")
+    local icon = b:CreateTexture(nil, "ARTWORK")
     W.Size(icon, 20, 20)
-    icon:SetPoint("CENTER", 0, 0)
+    icon:SetPoint("TOPLEFT", 7, -5)
     icon:SetTexture(ICON)
+    icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
     local border = b:CreateTexture(nil, "OVERLAY")
-    W.Size(border, 52, 52)
-    border:SetPoint("TOPLEFT", 0, 0)
+    W.Size(border, 53, 53)
+    border:SetPoint("TOPLEFT")
     border:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder")
-
-    local function UpdatePos()
-        local rad = math.rad(AP.db.minimapPos or 220)
-        local cos, sin = math.cos(rad), math.sin(rad)
-        local cx, cy = Minimap:GetWidth() / 2, Minimap:GetHeight() / 2
-        local r = cx + 10                                       -- slightly outside the rim
-        b:ClearAllPoints()
-        b:SetPoint("CENTER", Minimap, "CENTER", cos * r, sin * r)
-    end
-    UpdatePos()
-
+    b:SetScript("OnClick", function(_, button)
+        if button == "RightButton" then UI:ShowSettings() else UI:Toggle() end
+    end)
     b:SetScript("OnDragStart", function(self)
-        self:SetScript("OnUpdate", function()
+        self:SetScript("OnUpdate", function(s)
             local mx, my = Minimap:GetCenter()
-            local cx, cy = GetCursorPosition()
-            local s = Minimap:GetEffectiveScale()
-            cx, cy = cx / s, cy / s
-            local deg = math.deg(math.atan2(cy - my, cx - mx))
-            if deg < 0 then deg = deg + 360 end
-            AP.db.minimapPos = deg
-            UpdatePos()
+            local px, py = GetCursorPosition()
+            local sc = Minimap:GetEffectiveScale()
+            AP.db.minimap.angle = math.deg(math.atan2(py / sc - my, px / sc - mx))
+            PositionMinimapButton(s)
         end)
     end)
     b:SetScript("OnDragStop", function(self) self:SetScript("OnUpdate", nil) end)
-    b:SetScript("OnClick", function(_, btn)
-        if btn == "RightButton" then UI:ShowSettings() else UI:Toggle() end
-    end)
     b:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_LEFT")
         GameTooltip:AddLine("Atlas Plus")
@@ -1555,5 +1582,35 @@ function UI:CreateMinimapButton()
         GameTooltip:Show()
     end)
     b:SetScript("OnLeave", function() GameTooltip:Hide() end)
-    b:SetShown(AP.db.minimap)
+    self.minimapBtn = b
+    self:UpdateMinimapButton()
+end
+
+function UI:UpdateMinimapButton()
+    local b = self.minimapBtn
+    if not b then return end
+    if AP.db.minimap.hide then b:Hide() else PositionMinimapButton(b); b:Show() end
+end
+
+---------------------------------------------------------------------------
+-- Escape > Interface > AddOns
+---------------------------------------------------------------------------
+function UI:CreateInterfacePanel()
+    local p = CreateFrame("Frame", "AtlasPlusInterfacePanel", UIParent)
+    p.name = "Atlas Plus"
+    local t = W.Text(p, "GameFontNormalLarge")
+    t:SetPoint("TOPLEFT", 16, -16)
+    t:SetText("Atlas Plus |cfffc7a2b[Circle Edition]|r |cff888888v" .. AP.VERSION .. "|r")
+    local d = W.Text(p, "GameFontHighlight")
+    d:SetPoint("TOPLEFT", t, "BOTTOMLEFT", 0, -10)
+    d:SetWidth(560)
+    d:SetJustifyH("LEFT")
+    d:SetText(L["Instance maps with every boss and its loot, item search, and world map zone info.\n\n/ap - open / close     /ap here - map of where you are     /ap settings"])
+    local open = W.Button(p, L["Open Atlas Plus"], 140, 24)
+    open:SetPoint("TOPLEFT", d, "BOTTOMLEFT", 0, -16)
+    open:SetScript("OnClick", function() HideUIPanel(InterfaceOptionsFrame); HideUIPanel(GameMenuFrame); UI:Show() end)
+    local set = W.Button(p, L["Settings"], 100, 24)
+    set:SetPoint("LEFT", open, "RIGHT", 8, 0)
+    set:SetScript("OnClick", function() HideUIPanel(InterfaceOptionsFrame); HideUIPanel(GameMenuFrame); UI:ShowSettings() end)
+    InterfaceOptions_AddCategory(p)
 end
